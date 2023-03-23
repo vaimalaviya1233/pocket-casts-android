@@ -14,9 +14,14 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import androidx.media3.extractor.DefaultExtractorsFactory
+import androidx.media3.extractor.mp3.Mp3Extractor
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
@@ -169,8 +174,14 @@ open class PlaybackService : MediaLibraryService(), CoroutineScope {
 
         val renderersFactory = createRenderersFactory()
 
+        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
+            .setUserAgent("Pocket Casts")
+            .setAllowCrossProtocolRedirects(true)
+        val dataSourceFactory = DefaultDataSource.Factory(baseContext, httpDataSourceFactory)
+        val extractorsFactory = DefaultExtractorsFactory().setMp3ExtractorFlags(Mp3Extractor.FLAG_ENABLE_CONSTANT_BITRATE_SEEKING)
+        val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory, extractorsFactory)
+
         val exoPlayer = ExoPlayer.Builder(this, renderersFactory)
-            // TODO Confirm if we need these
             .setAudioAttributes(AudioAttributes.DEFAULT, /* handleAudioFocus= */ true)
             .setWakeMode(C.WAKE_MODE_LOCAL)
             .setHandleAudioBecomingNoisy(true)
@@ -178,6 +189,7 @@ open class PlaybackService : MediaLibraryService(), CoroutineScope {
             .setLoadControl(createExoPlayerLoadControl())
             .setSeekForwardIncrementMs(settings.getSkipForwardInMs())
             .setSeekBackIncrementMs(settings.getSkipBackwardInMs())
+            .setMediaSourceFactory(mediaSourceFactory)
             .build()
         renderersFactory.onAudioSessionId(exoPlayer.audioSessionId)
 
