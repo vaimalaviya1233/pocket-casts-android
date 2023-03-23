@@ -19,14 +19,9 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
-import androidx.media3.extractor.DefaultExtractorsFactory
-import androidx.media3.extractor.mp3.Mp3Extractor
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
@@ -197,22 +192,6 @@ open class PlaybackService : MediaLibraryService(), CoroutineScope {
 
         // FIXME
 
-//        https://distributed.blog/wp-content/uploads/2021/11/Dylan-Field-Connie-.mp3
-        val uri = Uri.parse("https://distributed.blog/wp-content/uploads/2021/11/Dylan-Field-Connie-.mp3")
-        val mediaItem = MediaItem.fromUri(uri)
-
-        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
-            .setUserAgent("Pocket Casts")
-            .setAllowCrossProtocolRedirects(true)
-        val dataSourceFactory = DefaultDataSource.Factory(baseContext, httpDataSourceFactory)
-        val extractorsFactory = DefaultExtractorsFactory().setMp3ExtractorFlags(Mp3Extractor.FLAG_ENABLE_CONSTANT_BITRATE_SEEKING)
-        val source = ProgressiveMediaSource.Factory(dataSourceFactory, extractorsFactory)
-            .createMediaSource(mediaItem)
-        exoPlayer.setMediaSource(source)
-//        exoPlayer.addMediaItem(mediaItem)
-//        // FIXME move this
-        exoPlayer.prepare()
-
         return exoPlayer
     }
 
@@ -350,14 +329,18 @@ open class PlaybackService : MediaLibraryService(), CoroutineScope {
             // Transition between foreground service running and not with a notification
             when (state) {
                 PlaybackStateCompat.STATE_BUFFERING,
-                PlaybackStateCompat.STATE_PLAYING -> {
+                PlaybackStateCompat.STATE_PLAYING,
+                -> {
                     if (notification != null) {
                         try {
                             startForeground(Settings.NotificationId.PLAYING.value, notification)
                             notificationManager.enteredForeground(notification)
                             LogBuffer.i(LogBuffer.TAG_PLAYBACK, "startForeground state: $state")
                         } catch (e: Exception) {
-                            LogBuffer.e(LogBuffer.TAG_PLAYBACK, "attempted startForeground for state: $state, but that threw an exception we caught: $e")
+                            LogBuffer.e(
+                                LogBuffer.TAG_PLAYBACK,
+                                "attempted startForeground for state: $state, but that threw an exception we caught: $e"
+                            )
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
                                 e is ForegroundServiceStartNotAllowedException
                             ) {
@@ -367,28 +350,44 @@ open class PlaybackService : MediaLibraryService(), CoroutineScope {
                             }
                         }
                     } else {
-                        LogBuffer.i(LogBuffer.TAG_PLAYBACK, "can't startForeground as the notification is null")
+                        LogBuffer.i(
+                            LogBuffer.TAG_PLAYBACK,
+                            "can't startForeground as the notification is null"
+                        )
                     }
                 }
                 PlaybackStateCompat.STATE_NONE,
                 PlaybackStateCompat.STATE_STOPPED,
                 PlaybackStateCompat.STATE_PAUSED,
-                PlaybackStateCompat.STATE_ERROR -> {
-                    val removeNotification = state != PlaybackStateCompat.STATE_PAUSED || settings.hideNotificationOnPause()
+                PlaybackStateCompat.STATE_ERROR,
+                -> {
+                    val removeNotification =
+                        state != PlaybackStateCompat.STATE_PAUSED || settings.hideNotificationOnPause()
                     // We have to be careful here to only call notify when moving from PLAY to PAUSE once
                     // or else the notification will come back after being swiped away
                     if (removeNotification || isForegroundService) {
-                        val isTransientLoss = playbackState.extras?.getBoolean(MediaSessionManager.EXTRA_TRANSIENT) ?: false
+                        val isTransientLoss =
+                            playbackState.extras?.getBoolean(MediaSessionManager.EXTRA_TRANSIENT)
+                                ?: false
                         if (isTransientLoss) {
                             // Don't kill the foreground service for transient pauses
                             return
                         }
 
                         if (notification != null && state == PlaybackStateCompat.STATE_PAUSED && isForegroundService) {
-                            notificationManager.notify(Settings.NotificationId.PLAYING.value, notification)
-                            LogBuffer.i(LogBuffer.TAG_PLAYBACK, "stopForeground state: $state (update notification)")
+                            notificationManager.notify(
+                                Settings.NotificationId.PLAYING.value,
+                                notification
+                            )
+                            LogBuffer.i(
+                                LogBuffer.TAG_PLAYBACK,
+                                "stopForeground state: $state (update notification)"
+                            )
                         } else {
-                            LogBuffer.i(LogBuffer.TAG_PLAYBACK, "stopForeground state: $state removing notification: $removeNotification")
+                            LogBuffer.i(
+                                LogBuffer.TAG_PLAYBACK,
+                                "stopForeground state: $state removing notification: $removeNotification"
+                            )
                         }
 
                         @Suppress("DEPRECATION")
@@ -398,9 +397,13 @@ open class PlaybackService : MediaLibraryService(), CoroutineScope {
                     if (state == PlaybackStateCompat.STATE_ERROR) {
                         LogBuffer.e(
                             LogBuffer.TAG_PLAYBACK,
-                            "Playback state error: ${playbackStatusRelay.value?.errorCode
-                                ?: -1} ${playbackStatusRelay.value?.errorMessage
-                                ?: "Unknown error"}"
+                            "Playback state error: ${
+                            playbackStatusRelay.value?.errorCode
+                                ?: -1
+                            } ${
+                            playbackStatusRelay.value?.errorMessage
+                                ?: "Unknown error"
+                            }"
                         )
                     }
                 }
@@ -726,10 +729,46 @@ open class PlaybackService : MediaLibraryService(), CoroutineScope {
             mediaSession: MediaSession,
             controller: MediaSession.ControllerInfo,
             mediaItems: MutableList<MediaItem>,
-        ): ListenableFuture<MutableList<MediaItem>> {
-            Timber.i("TEST123, onAddMediaItems: $mediaItems")
-            return super.onAddMediaItems(mediaSession, controller, mediaItems)
-        }
+        ): ListenableFuture<MutableList<MediaItem>> =
+            future {
+                Timber.i("TEST123, onAddMediaItems: $mediaItems")
+                mediaItems
+                    .mapNotNull {
+                        val playableUuid = it.mediaId
+                        val playable = episodeManager.findPlayableByUuid(playableUuid)
+
+                        if (playable == null) {
+                            LogBuffer.e(
+                                LogBuffer.TAG_PLAYBACK,
+                                "Could not find playable for $playableUuid in PlaybackService onAddMediaItems callback"
+                            )
+                            null
+                        } else {
+
+                            // FIXME Where to use the logic for creating a source instead of a media item
+//                            val httpDataSourceFactory = DefaultHttpDataSource.Factory()
+//                                .setUserAgent("Pocket Casts")
+//                                .setAllowCrossProtocolRedirects(true)
+//                            val dataSourceFactory = DefaultDataSource.Factory(baseContext, httpDataSourceFactory)
+//                            val extractorsFactory = DefaultExtractorsFactory().setMp3ExtractorFlags(Mp3Extractor.FLAG_ENABLE_CONSTANT_BITRATE_SEEKING)
+//                            val source = ProgressiveMediaSource.Factory(dataSourceFactory, extractorsFactory)
+//                                .createMediaSource(mediaItem)
+//                            exoPlayer.setMediaSource(source)
+
+                            val location = if (playable.isDownloaded) {
+                                playable.downloadedFilePath
+                            } else {
+                                playable.downloadUrl
+                            }
+
+                            Timber.i("TEST123, adding location to media item: $location")
+
+                            it.buildUpon().setUri(
+                                Uri.parse(location)
+                            ).build()
+                        }
+                    }.toMutableList()
+            }
 
         override fun onSetMediaItems(
             mediaSession: MediaSession,

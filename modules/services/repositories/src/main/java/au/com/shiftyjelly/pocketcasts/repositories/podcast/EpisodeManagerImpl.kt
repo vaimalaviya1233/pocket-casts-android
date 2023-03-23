@@ -491,6 +491,7 @@ class EpisodeManagerImpl @Inject constructor(
 
         // Auto archive after playing if the episode isn't already archived
         if (!episode.isArchived) {
+            Timber.i("TEST123, EpisodeManager::markAsPlayedExternally")
             archivePlayedEpisode(episode, playbackManager, podcastManager, sync = true)
         }
     }
@@ -502,6 +503,7 @@ class EpisodeManagerImpl @Inject constructor(
     }
 
     override fun markAsPlayed(episode: Playable?, playbackManager: PlaybackManager, podcastManager: PodcastManager) {
+        Timber.i("TEST123, EpisodeManager::markAsPlayed")
         if (episode == null) {
             return
         }
