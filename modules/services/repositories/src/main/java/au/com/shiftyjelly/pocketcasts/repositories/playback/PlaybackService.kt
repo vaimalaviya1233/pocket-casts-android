@@ -126,6 +126,7 @@ open class PlaybackService : MediaLibraryService(), CoroutineScope {
     private lateinit var mediaLibrarySession: MediaLibrarySession
     private lateinit var player: ExoPlayer
     private val librarySessionCallback = CustomMediaLibrarySessionCallback()
+    private lateinit var renderersFactory: ShiftyRenderersFactory
 
 //    private var mediaControllerCallback: MediaControllerCallback? = null
 //    lateinit var notificationManager: PlayerNotificationManager
@@ -172,7 +173,7 @@ open class PlaybackService : MediaLibraryService(), CoroutineScope {
 
     private fun createExoPlayer(): ExoPlayer {
 
-        val renderersFactory = createRenderersFactory()
+        renderersFactory = createRenderersFactory()
 
         val httpDataSourceFactory = DefaultHttpDataSource.Factory()
             .setUserAgent("Pocket Casts")
@@ -703,7 +704,16 @@ open class PlaybackService : MediaLibraryService(), CoroutineScope {
             controller: MediaSession.ControllerInfo,
         ): MediaSession.ConnectionResult {
             Timber.d("TEST123, onConnect: ${controller.packageName}")
-            return super.onConnect(session, controller)
+            val connectionResult = super.onConnect(session, controller)
+            val sessionCommands = connectionResult.availableSessionCommands
+                .buildUpon()
+                .add(SessionCommand("VolumeBoost", Bundle.EMPTY))
+                .build()
+
+            return MediaSession.ConnectionResult.accept(
+                sessionCommands,
+                connectionResult.availablePlayerCommands,
+            )
         }
 
         override fun onPostConnect(session: MediaSession, controller: MediaSession.ControllerInfo) {
@@ -797,7 +807,12 @@ open class PlaybackService : MediaLibraryService(), CoroutineScope {
             args: Bundle,
         ): ListenableFuture<SessionResult> {
             Timber.i("TEST123, onCustomCommand: $customCommand")
-            return super.onCustomCommand(session, controller, customCommand, args)
+            val result = super.onCustomCommand(session, controller, customCommand, args)
+            if (customCommand.customAction == "VolumeBoost") {
+                val isVolumeBoosted = args.getBoolean("isVolumeBoosted")
+                renderersFactory.setBoostVolume(isVolumeBoosted)
+            }
+            return result
         }
 
         override fun onSubscribe(
