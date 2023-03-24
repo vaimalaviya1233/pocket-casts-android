@@ -11,8 +11,10 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
@@ -22,18 +24,25 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.mp3.Mp3Extractor
+import androidx.media3.session.CommandButton
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionResult
+import au.com.shiftyjelly.pocketcasts.analytics.AnalyticsEvent
+import au.com.shiftyjelly.pocketcasts.analytics.AnalyticsSource
+import au.com.shiftyjelly.pocketcasts.analytics.EpisodeAnalytics
+import au.com.shiftyjelly.pocketcasts.images.R
 import au.com.shiftyjelly.pocketcasts.models.db.helper.UserEpisodePodcastSubstitute
 import au.com.shiftyjelly.pocketcasts.models.entity.Episode
 import au.com.shiftyjelly.pocketcasts.models.entity.Podcast
+import au.com.shiftyjelly.pocketcasts.models.entity.UserEpisode
 import au.com.shiftyjelly.pocketcasts.models.to.FolderItem
 import au.com.shiftyjelly.pocketcasts.models.to.SubscriptionStatus
 import au.com.shiftyjelly.pocketcasts.models.type.PodcastsSortType
 import au.com.shiftyjelly.pocketcasts.preferences.Settings
+import au.com.shiftyjelly.pocketcasts.preferences.Settings.MediaNotificationControls.Companion.NotificationActionKey
 import au.com.shiftyjelly.pocketcasts.repositories.notification.NotificationDrawer
 import au.com.shiftyjelly.pocketcasts.repositories.notification.NotificationHelper
 import au.com.shiftyjelly.pocketcasts.repositories.playback.auto.AutoConverter
@@ -60,6 +69,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.guava.future
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.rx2.awaitSingleOrNull
 import timber.log.Timber
 import java.util.concurrent.TimeUnit
@@ -107,9 +117,12 @@ open class PlaybackService : MediaLibraryService(), CoroutineScope {
 
         // Be careful increasing the size of the back buffer. It can easily lead to OOM errors.
         private val BACK_BUFFER_TIME_MILLIS = TimeUnit.MINUTES.toMillis(2).toInt()
+
+        private val source = AnalyticsSource.MEDIA_BUTTON_BROADCAST_ACTION
     }
 
     @Inject lateinit var podcastManager: PodcastManager
+    @Inject lateinit var episodeAnalytics: EpisodeAnalytics
     @Inject lateinit var episodeManager: EpisodeManager
     @Inject lateinit var folderManager: FolderManager
     @Inject lateinit var userEpisodeManager: UserEpisodeManager
@@ -124,9 +137,12 @@ open class PlaybackService : MediaLibraryService(), CoroutineScope {
     @Inject lateinit var statsManager: StatsManager
 
     private lateinit var mediaLibrarySession: MediaLibrarySession
-    private lateinit var player: ExoPlayer
+    private lateinit var player: Player
     private val librarySessionCallback = CustomMediaLibrarySessionCallback()
     private lateinit var renderersFactory: ShiftyRenderersFactory
+
+    private lateinit var customCommands: List<CommandButton>
+    private lateinit var customLayout: List<CommandButton>
 
 //    private var mediaControllerCallback: MediaControllerCallback? = null
 //    lateinit var notificationManager: PlayerNotificationManager
@@ -150,18 +166,64 @@ open class PlaybackService : MediaLibraryService(), CoroutineScope {
 
         LogBuffer.i(LogBuffer.TAG_PLAYBACK, "Playback service created")
 
+        val skipCommands = listOf(
+            CommandButton.Builder()
+                .setDisplayName(getString(au.com.shiftyjelly.pocketcasts.localization.R.string.skip_back))
+                .setIconResId(R.drawable.auto_skipback)
+                .setSessionCommand(
+                    SessionCommand(NotificationActionKey.SKIP_BACK.value, Bundle.EMPTY)
+                )
+                .build(),
+            CommandButton.Builder()
+                .setDisplayName(getString(au.com.shiftyjelly.pocketcasts.localization.R.string.skip_forward))
+                .setIconResId(R.drawable.auto_skipforward)
+                .setSessionCommand(
+                    SessionCommand(NotificationActionKey.SKIP_FWD.value, Bundle.EMPTY)
+                )
+                .build(),
+        )
+        customCommands = skipCommands + settings.getMediaNotificationControlItems().map {
+            notificationControlItemToCommandButton(it).build()
+        }
+        customLayout = customCommands
+
         initializeSessionAndPlayer()
+    }
 
-//        val mediaSession = playbackManager.mediaSession
-//        sessionToken = mediaSession.sessionToken
+    override fun onUpdateNotification(session: MediaSession) {
+        Timber.i("TEST123, onUpdateNotification 2 args")
+        super.onUpdateNotification(session)
+    }
 
-//        mediaController = MediaControllerCompat(this, mediaSession)
-//        notificationManager = PlayerNotificationManagerImpl(this)
+    override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
+        Timber.i("TEST123, onUpdateNotification 1 arg")
+        super.onUpdateNotification(session, startInForegroundRequired)
+    }
+
+    private fun notificationControlItemToCommandButton(
+        item: Settings.MediaNotificationControls
+    ): CommandButton.Builder {
+        return CommandButton.Builder()
+            .setDisplayName(getString(item.controlName))
+            .setIconResId(item.iconRes)
+            .setSessionCommand(SessionCommand(item.key, Bundle()))
     }
 
     private fun initializeSessionAndPlayer() {
+
         // TODO Use the CastPlayer when casting
-        player = createExoPlayer()
+
+        val exoPlayer = createExoPlayer()
+        player = object : ForwardingPlayer(exoPlayer) {
+            override fun getAvailableCommands(): Player.Commands {
+                Timber.i("TEST123, removing seek to previous command from available commands in forwarding player")
+                return super.getAvailableCommands()
+                    .buildUpon()
+                    // Prevent the go to back arrow button from appearing in the media notification
+                    .remove(COMMAND_SEEK_TO_PREVIOUS)
+                    .build()
+            }
+        }
 
         val mediaSessionBuilder = MediaLibrarySession.Builder(this, player, librarySessionCallback)
         if (!Util.isAutomotive(this)) { // We can't start activities on automotive
@@ -169,6 +231,13 @@ open class PlaybackService : MediaLibraryService(), CoroutineScope {
         }
 
         mediaLibrarySession = mediaSessionBuilder.build()
+
+        if (customLayout.isNotEmpty()) {
+            // Send custom layout to legacy session.
+            mediaLibrarySession.setCustomLayout(customLayout)
+        }
+
+        Timber.i("TEST123 mediaLibrarySession initialized: $mediaLibrarySession")
     }
 
     private fun createExoPlayer(): ExoPlayer {
@@ -705,20 +774,42 @@ open class PlaybackService : MediaLibraryService(), CoroutineScope {
         ): MediaSession.ConnectionResult {
             Timber.d("TEST123, onConnect: ${controller.packageName}")
             val connectionResult = super.onConnect(session, controller)
-            val sessionCommands = connectionResult.availableSessionCommands
-                .buildUpon()
-                .add(SessionCommand("VolumeBoost", Bundle.EMPTY))
-                .build()
+            val sessionCommands = run {
+                val sessionCommandsBuilder = connectionResult.availableSessionCommands
+                    .buildUpon()
+                    .add(SessionCommand("VolumeBoost", Bundle.EMPTY))
 
-            return MediaSession.ConnectionResult.accept(
-                sessionCommands,
-                connectionResult.availablePlayerCommands,
-            )
+                customCommands.forEach { item ->
+                    item.sessionCommand?.let {
+                        Timber.e("TEST123, adding session command: ${item.displayName}")
+                        sessionCommandsBuilder.add(it)
+                    }
+                }
+                sessionCommandsBuilder.build()
+            }
+
+            val playerCommands = connectionResult.availablePlayerCommands
+
+            Timber.e("TEST123, sessionCommands count: ${sessionCommands.commands.size}")
+            Timber.e("TEST123, playerCommands count: ${connectionResult.availablePlayerCommands.size()}")
+            return MediaSession.ConnectionResult.accept(sessionCommands, playerCommands,)
         }
 
         override fun onPostConnect(session: MediaSession, controller: MediaSession.ControllerInfo) {
             Timber.i("TEST123, onPostConnect: ${controller.packageName}")
             super.onPostConnect(session, controller)
+
+            if (customLayout.isNotEmpty() && controller.controllerVersion != 0) {
+                // Let Media3 controller (for instance the MediaNotificationProvider) know about the custom
+                // layout right after it connected.
+                mediaLibrarySession.setCustomLayout(controller, customLayout) // Ignore the future result
+            }
+
+            if (customLayout.isNotEmpty() && controller.controllerVersion != 0) {
+                // Let Media3 controller (for instance the MediaNotificationProvider) know about the custom
+                // layout right after it connected.
+                mediaLibrarySession.setCustomLayout(controller, customLayout) // Ignore the future result
+            }
         }
 
         override fun onDisconnected(
@@ -808,11 +899,96 @@ open class PlaybackService : MediaLibraryService(), CoroutineScope {
         ): ListenableFuture<SessionResult> {
             Timber.i("TEST123, onCustomCommand: $customCommand")
             val result = super.onCustomCommand(session, controller, customCommand, args)
-            if (customCommand.customAction == "VolumeBoost") {
-                val isVolumeBoosted = args.getBoolean("isVolumeBoosted")
-                renderersFactory.setBoostVolume(isVolumeBoosted)
+
+            val notificationActionKey = NotificationActionKey.fromString(customCommand.customAction)
+            when (notificationActionKey) {
+                NotificationActionKey.ARCHIVE_KEY -> {
+                    TODO()
+                }
+                NotificationActionKey.MARK_AS_PLAYED_KEY -> {
+                    TODO()
+                }
+                NotificationActionKey.PLAY_NEXT_KEY -> {
+                    TODO()
+                }
+                NotificationActionKey.PLAYBACK_SPEED_KEY -> {
+                    TODO()
+                }
+                NotificationActionKey.STAR_KEY -> {
+
+                    player.currentMediaItem?.mediaId?.let { uuid ->
+                        // FIXME remove runBlocking
+                        runBlocking(Dispatchers.IO) {
+                            episodeManager.findPlayableByUuid(uuid)
+                        }?.let { playable ->
+                            when (playable) {
+                                is Episode -> {
+                                    val wasStarred = playable.isStarred
+                                    starEpisode(playable, !wasStarred)
+
+                                    // FIXME this icon logic does not work on API <31
+                                    val iconRes = if (wasStarred) {
+                                        R.drawable.auto_star
+                                    } else {
+                                        R.drawable.auto_starred
+                                    }
+
+                                    customLayout = customLayout.map {
+                                        if (it.sessionCommand?.customAction == NotificationActionKey.STAR_KEY.value) {
+                                            Timber.e("TEST123, updating starred, wasStarred: $wasStarred")
+                                            notificationControlItemToCommandButton(Settings.MediaNotificationControls.Star)
+                                                .setIconResId(iconRes)
+                                                .build()
+                                        } else {
+                                            it
+                                        }
+                                    }
+
+                                    mediaLibrarySession.setCustomLayout(controller, customLayout)
+//                                    onUpdateNotification(mediaLibrarySession)
+                                }
+                                is UserEpisode -> {
+                                    // TODO should we be doing something here?
+                                }
+                            }
+                            // FIXME should we be updating UserEpisodes too?
+                        }
+                    }
+                }
+                NotificationActionKey.SKIP_BACK -> {
+                    TODO()
+                }
+                NotificationActionKey.SKIP_FWD -> {
+                    TODO()
+                }
+                null -> {
+                    if (customCommand.customAction == "VolumeBoost") {
+                        val isVolumeBoosted = args.getBoolean("isVolumeBoosted")
+                        renderersFactory.setBoostVolume(isVolumeBoosted)
+                    } else {
+                        throw IllegalStateException("Unexpected custom command received: ${customCommand.customAction}")
+                    }
+                }
             }
+
             return result
+        }
+
+        private fun starEpisode(episode: Episode, starred: Boolean) {
+
+            // FIXME we were using setRating for this before and the callback has an onSetRating method,
+            //   so still need to look into that.
+
+            episode.isStarred = starred
+            launch(Dispatchers.IO) {
+                episodeManager.starEpisode(episode, starred)
+            }
+            val event = if (starred) {
+                AnalyticsEvent.EPISODE_STARRED
+            } else {
+                AnalyticsEvent.EPISODE_UNSTARRED
+            }
+            episodeAnalytics.trackEvent(event, source, episode.uuid)
         }
 
         override fun onSubscribe(
