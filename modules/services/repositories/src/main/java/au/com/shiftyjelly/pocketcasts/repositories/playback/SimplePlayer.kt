@@ -45,12 +45,6 @@ class SimplePlayer(
     @Volatile
     private var prepared = false
 
-    override suspend fun bufferedPercentage(): Int {
-        return withContext(Dispatchers.Main) {
-            player.bufferedPercentage
-        }
-    }
-
     override suspend fun durationMs(): Int? {
         return withContext(Dispatchers.Main) {
             val duration = player.duration
@@ -59,8 +53,6 @@ class SimplePlayer(
     }
 
     override fun isPlaying(): Boolean = player.playWhenReady
-
-    override fun handleCurrentPositionMs(): Int = player.currentPosition.toInt()
 
     override fun handlePrepare() {
         if (prepared) {
