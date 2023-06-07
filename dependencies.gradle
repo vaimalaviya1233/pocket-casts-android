@@ -113,6 +113,7 @@ project.ext {
 
     // Automattic library versions
     versionTracks = 'trunk-b3655d42123501a1d9a304789b738610ab4403c8'
+    versionFluxC = '2.31.0'
 
     androidLibs = [
             appCompat: "androidx.appcompat:appcompat:1.5.0",
@@ -284,6 +285,7 @@ project.ext {
             accompanistSystemUiController: "com.google.accompanist:accompanist-systemuicontroller:$versionComposeAccompanist",
             // Automattic Tracks
             automatticTracks: "com.automattic:Automattic-Tracks-Android:$versionTracks",
+            automatticFluxC: "org.wordpress:fluxc:$versionFluxC",
             // Sentry
             sentryBom: 'io.sentry:sentry-bom:6.4.2',
             sentry: 'io.sentry:sentry-android',
