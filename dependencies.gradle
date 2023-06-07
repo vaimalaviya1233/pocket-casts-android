@@ -52,7 +52,7 @@ project.ext {
     versionCode = getVersionCode()
 
     // Android
-    minSdkVersion = 23
+    minSdkVersion = 24
     minSdkVersionWear = 26
     targetSdkVersion = 33
     compileSdkVersion = 33
