@@ -3,6 +3,7 @@ package au.com.shiftyjelly.pocketcasts.settings.viewmodel
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import au.com.shiftyjelly.pocketcasts.encryptedlogging.EncryptedLogging
 import au.com.shiftyjelly.pocketcasts.repositories.support.Support
 import au.com.shiftyjelly.pocketcasts.utils.log.LogBuffer
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -12,12 +13,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
+import java.io.File
 import javax.inject.Inject
 import au.com.shiftyjelly.pocketcasts.localization.R as LR
 
 @HiltViewModel
 class LogsViewModel @Inject constructor(
     private val support: Support,
+    private val encryptedLogging: EncryptedLogging,
 ) : ViewModel() {
 
     data class State(
@@ -37,6 +40,10 @@ class LogsViewModel @Inject constructor(
             }
             _state.update { it.copy(logs = logs) }
         }
+    }
+
+    fun encryptAndUploadLogFile(logsFile: File) {
+        encryptedLogging.encryptAndUploadLogFile(logsFile, true)
     }
 
     fun shareLogs(context: Context) {
