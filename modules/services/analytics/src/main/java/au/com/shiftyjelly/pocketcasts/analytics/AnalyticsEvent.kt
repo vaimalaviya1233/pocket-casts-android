@@ -554,4 +554,8 @@ enum class AnalyticsEvent(val key: String) {
     WEAR_MAIN_LIST_FILTERS_TAPPED("wear_main_list_filters_tapped"),
     WEAR_MAIN_LIST_FILES_TAPPED("wear_main_list_files_tapped"),
     WEAR_MAIN_LIST_SETTINGS_TAPPED("wear_main_list_settings_tapped"),
+
+    /* Encrypted Logging */
+    ENCRYPTED_LOGGING_UPLOAD_SUCCESSFUL("encrypted_logging_upload_successful"),
+    ENCRYPTED_LOGGING_UPLOAD_FAILED("encrypted_logging_upload_failed")
 }
