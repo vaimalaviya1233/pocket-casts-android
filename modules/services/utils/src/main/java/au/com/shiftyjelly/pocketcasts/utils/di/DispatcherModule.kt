@@ -1,4 +1,4 @@
-package au.com.shiftyjelly.pocketcasts.ui.di
+package au.com.shiftyjelly.pocketcasts.utils.di
 
 import dagger.Module
 import dagger.Provides
