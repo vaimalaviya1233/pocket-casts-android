@@ -9,5 +9,6 @@ dependencies {
     implementation libs.automatticFluxC
     implementation libs.automatticTracks
     implementation project(':modules:services:analytics')
+    implementation project(':modules:services:preferences')
     implementation project(':modules:services:utils')
 }
