@@ -2,6 +2,8 @@ package au.com.shiftyjelly.pocketcasts.wear.di
 
 import android.content.Context
 import android.net.ConnectivityManager
+import au.com.shiftyjelly.pocketcasts.utils.di.ForApplicationScope
+import au.com.shiftyjelly.pocketcasts.utils.di.IsEmulator
 import com.google.android.horologist.media3.rules.PlaybackRules
 import dagger.Module
 import dagger.Provides

@@ -1,4 +1,4 @@
-package au.com.shiftyjelly.pocketcasts.wear.di
+package au.com.shiftyjelly.pocketcasts.utils.di
 
 import javax.inject.Qualifier
 
