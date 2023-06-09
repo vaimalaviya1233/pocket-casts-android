@@ -1,0 +1,11 @@
+apply from: "../../modules.gradle"
+apply plugin: 'kotlin-android'
+
+android {
+    namespace 'au.com.shiftyjelly.pocketcasts.encyptedlogging'
+}
+
+dependencies {
+    implementation libs.lazySodium
+    implementation libs.devJna
+}
