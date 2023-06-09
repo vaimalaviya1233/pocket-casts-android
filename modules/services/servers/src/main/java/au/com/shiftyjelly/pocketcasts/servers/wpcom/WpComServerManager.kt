@@ -16,4 +16,10 @@ class WpComServerManager @Inject constructor(
         val request = AnonymousBumpStatsRequest(bumpStats)
         return server.bumpStatAnonymously(request)
     }
+
+    suspend fun uploadEncryptedLogs(
+        logUuid: String,
+        clientSecret: String,
+        contents: ByteArray,
+    ): Response<String> = server.uploadEncryptedLogs(logUuid, clientSecret, contents)
 }
