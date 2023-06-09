@@ -1,6 +1,7 @@
-package au.com.shiftyjelly.pocketcasts.servers.bumpstats
+package au.com.shiftyjelly.pocketcasts.servers.wpcom
 
 import au.com.shiftyjelly.pocketcasts.models.entity.AnonymousBumpStat
+import au.com.shiftyjelly.pocketcasts.servers.bumpstats.AnonymousBumpStatsRequest
 import au.com.shiftyjelly.pocketcasts.servers.di.WpComServerRetrofit
 import retrofit2.Response
 import retrofit2.Retrofit
