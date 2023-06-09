@@ -8,6 +8,8 @@ import au.com.shiftyjelly.pocketcasts.repositories.chromecast.CastManager
 import au.com.shiftyjelly.pocketcasts.repositories.chromecast.CastManagerImpl
 import au.com.shiftyjelly.pocketcasts.repositories.download.DownloadManager
 import au.com.shiftyjelly.pocketcasts.repositories.download.DownloadManagerImpl
+import au.com.shiftyjelly.pocketcasts.repositories.encryptedlogging.EncryptedLoggingManager
+import au.com.shiftyjelly.pocketcasts.repositories.encryptedlogging.EncryptedLoggingManagerImpl
 import au.com.shiftyjelly.pocketcasts.repositories.endofyear.EndOfYearManager
 import au.com.shiftyjelly.pocketcasts.repositories.endofyear.EndOfYearManagerImpl
 import au.com.shiftyjelly.pocketcasts.repositories.notification.NotificationDrawer
@@ -139,4 +141,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun provideRatingsManager(ratingsManagerImpl: RatingsManagerImpl): RatingsManager
+
+    @Binds
+    @Singleton
+    abstract fun provideEncryptedLoggingManager(encryptedLoggingManager: EncryptedLoggingManagerImpl): EncryptedLoggingManager
 }
