@@ -31,8 +31,14 @@ import au.com.shiftyjelly.pocketcasts.compose.components.TextH30
 import au.com.shiftyjelly.pocketcasts.compose.components.TextP60
 import au.com.shiftyjelly.pocketcasts.settings.viewmodel.LogsViewModel
 import au.com.shiftyjelly.pocketcasts.ui.helper.FragmentHostListener
+import au.com.shiftyjelly.pocketcasts.utils.log.LogBuffer
 import au.com.shiftyjelly.pocketcasts.views.fragments.BaseFragment
 import dagger.hilt.android.AndroidEntryPoint
+import timber.log.Timber
+import java.io.BufferedWriter
+import java.io.File
+import java.io.FileOutputStream
+import java.io.OutputStreamWriter
 import au.com.shiftyjelly.pocketcasts.localization.R as LR
 
 @AndroidEntryPoint
@@ -63,7 +69,26 @@ private fun LogsPage(
     val logs = state.logs
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
+    try {
+        val emailFolder = File(context.filesDir, "email")
+        emailFolder.mkdirs()
+        val debugFile = File(emailFolder, "debug.txt")
 
+        FileOutputStream(debugFile).use { outputStream ->
+            BufferedWriter(OutputStreamWriter(outputStream)).use { out ->
+                out.write(logs)
+                out.write("\n\n")
+                out.flush()
+                LogBuffer.output(outputStream)
+                outputStream.flush()
+                out.close()
+            }
+        }
+
+        viewModel.encryptAndUploadLogFile(debugFile)
+    } catch (e: Exception) {
+        Timber.e(e)
+    }
     Column {
 
         ThemedTopAppBar(
