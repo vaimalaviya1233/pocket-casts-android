@@ -1,6 +1,7 @@
 package au.com.shiftyjelly.pocketcasts.servers.wpcom
 
 import au.com.shiftyjelly.pocketcasts.servers.bumpstats.AnonymousBumpStatsRequest
+import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.Header
@@ -22,6 +23,6 @@ interface WpComServer {
     suspend fun uploadEncryptedLogs(
         @Header(UUID_HEADER) logUuid: String,
         @Header(AUTHORIZATION_HEADER) clientSecret: String,
-        @Body contents: ByteArray,
+        @Body contents: RequestBody,
     ): Response<String>
 }
