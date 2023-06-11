@@ -14,6 +14,7 @@ import au.com.shiftyjelly.pocketcasts.localization.extensions.getStringPluralSec
 import au.com.shiftyjelly.pocketcasts.models.to.RefreshState
 import au.com.shiftyjelly.pocketcasts.preferences.Settings
 import au.com.shiftyjelly.pocketcasts.repositories.podcast.PodcastManager
+import au.com.shiftyjelly.pocketcasts.settings.LogsFragment
 import au.com.shiftyjelly.pocketcasts.ui.helper.FragmentHostListener
 import au.com.shiftyjelly.pocketcasts.views.extensions.setInputAsSeconds
 import dagger.hilt.android.AndroidEntryPoint
@@ -47,7 +48,16 @@ class AutomotiveSettingsPreferenceFragment : PreferenceFragmentCompat(), Observe
 
         changeSkipTitles()
         setupRefreshNow()
+        setupLogs()
         setupAbout()
+    }
+
+    private fun setupLogs() {
+        val preference = findPreference<Preference>("logs") ?: return
+        preference.setOnPreferenceClickListener {
+            (activity as? FragmentHostListener)?.addFragment(LogsFragment())
+            true
+        }
     }
 
     private fun setupAbout() {

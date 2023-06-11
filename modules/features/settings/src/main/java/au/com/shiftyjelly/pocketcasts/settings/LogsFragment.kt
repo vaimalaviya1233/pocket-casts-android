@@ -4,7 +4,9 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -17,6 +19,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -31,6 +34,7 @@ import au.com.shiftyjelly.pocketcasts.compose.components.TextH30
 import au.com.shiftyjelly.pocketcasts.compose.components.TextP60
 import au.com.shiftyjelly.pocketcasts.settings.viewmodel.LogsViewModel
 import au.com.shiftyjelly.pocketcasts.ui.helper.FragmentHostListener
+import au.com.shiftyjelly.pocketcasts.utils.Util
 import au.com.shiftyjelly.pocketcasts.utils.log.LogBuffer
 import au.com.shiftyjelly.pocketcasts.views.fragments.BaseFragment
 import dagger.hilt.android.AndroidEntryPoint
@@ -90,36 +94,54 @@ private fun LogsPage(
         Timber.e(e)
     }
     Column {
-
-        ThemedTopAppBar(
-            title = stringResource(LR.string.settings_logs),
-            onNavigationClick = onBackPressed,
-            actions = {
-                IconButton(
-                    onClick = {
-                        logs?.let {
-                            clipboardManager.setText(AnnotatedString(it))
-                        }
-                    },
-                    enabled = logs != null
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CopyAll,
-                        contentDescription = stringResource(LR.string.share)
-                    )
+        if (Util.isAutomotive(context)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+                content = {
+                    IconButton(
+                        onClick = { },
+                        enabled = logs != null
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = stringResource(LR.string.share)
+                        )
+                    }
                 }
+            )
+        } else {
+            ThemedTopAppBar(
+                title = stringResource(LR.string.settings_logs),
+                onNavigationClick = onBackPressed,
+                actions = {
+                    IconButton(
+                        onClick = {
+                            logs?.let {
+                                clipboardManager.setText(AnnotatedString(it))
+                            }
+                        },
+                        enabled = logs != null
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CopyAll,
+                            contentDescription = stringResource(LR.string.share)
+                        )
+                    }
 
-                IconButton(
-                    onClick = { viewModel.shareLogs(context) },
-                    enabled = logs != null
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = stringResource(LR.string.share)
-                    )
+                    IconButton(
+                        onClick = { viewModel.shareLogs(context) },
+                        enabled = logs != null
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = stringResource(LR.string.share)
+                        )
+                    }
                 }
-            }
-        )
+            )
+        }
 
         Column(
             modifier = Modifier

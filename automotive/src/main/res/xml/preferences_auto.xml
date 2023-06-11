@@ -43,6 +43,11 @@
         android:summary=""
         android:persistent="false" />
     <Preference
+        android:key="logs"
+        android:title="@string/settings_logs"
+        android:summary=""
+        android:persistent="false" />
+    <Preference
         android:key="about"
         android:title="@string/settings_title_about"
         android:summary=""
