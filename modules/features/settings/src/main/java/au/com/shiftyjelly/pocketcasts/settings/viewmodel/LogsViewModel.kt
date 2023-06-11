@@ -7,6 +7,8 @@ import au.com.shiftyjelly.pocketcasts.encryptedlogging.LogEncrypter
 import au.com.shiftyjelly.pocketcasts.encryptedlogging.di.EncryptedLoggingModule
 import au.com.shiftyjelly.pocketcasts.repositories.encryptedlogging.EncryptedLoggingManager
 import au.com.shiftyjelly.pocketcasts.repositories.support.Support
+import au.com.shiftyjelly.pocketcasts.utils.AppPlatform
+import au.com.shiftyjelly.pocketcasts.utils.Util
 import au.com.shiftyjelly.pocketcasts.utils.log.LogBuffer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -50,32 +52,37 @@ class LogsViewModel @Inject constructor(
 
     fun shareLogs(context: Context) {
         viewModelScope.launch(Dispatchers.IO) {
-            val intent = support.shareLogs(
-                subject = context.getString(LR.string.settings_logs),
-                intro = "",
-                emailSupport = false,
-                context = context
-            )
-            context.startActivity(intent)
+            if (Util.getAppPlatform(context) == AppPlatform.Phone) {
+                val intent = support.shareLogs(
+                    subject = context.getString(LR.string.settings_logs),
+                    intro = "",
+                    emailSupport = false,
+                    context = context
+                )
+                context.startActivity(intent)
+            } else {
+                try {
+                    val file = support.saveDebugLogs()
+                    encryptAndUploadLogFile(file)
+                } catch (e: Exception) {
+                    Timber.e(e.message)
+                }
+            }
         }
     }
 
-    fun encryptAndUploadLogFile(
-        file: File,
-    ) {
+    private suspend fun encryptAndUploadLogFile(file: File) {
         if (!isValidFile(file)) {
             Timber.e("File not valid")
             return
         }
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val uuid = UUID.randomUUID().toString()
-                val encryptedText = logEncrypter.encrypt(text = file.readText(), uuid = uuid)
-                val result = encryptedLoggingManager.uploadEncryptedLogs(uuid, appSecrets.appSecret, encryptedText.toByteArray())
-                Timber.d(result.toString())
-            } catch (e: UnsatisfiedLinkError) {
-                Timber.e(e.message)
-            }
+        try {
+            val uuid = UUID.randomUUID().toString()
+            val encryptedText = logEncrypter.encrypt(text = file.readText(), uuid = uuid)
+            val result = encryptedLoggingManager.uploadEncryptedLogs(uuid, appSecrets.appSecret, encryptedText.toByteArray())
+            Timber.d(result.toString())
+        } catch (e: UnsatisfiedLinkError) {
+            Timber.e(e.message)
         }
     }
 

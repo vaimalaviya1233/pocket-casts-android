@@ -91,30 +91,18 @@ class Support @Inject constructor(
 
             // try to attach the debug information
             try {
-                val emailFolder = File(context.filesDir, "email")
-                emailFolder.mkdirs()
-                val debugFile = File(emailFolder, "debug.txt")
-
-                FileOutputStream(debugFile).use { outputStream ->
-                    BufferedWriter(OutputStreamWriter(outputStream)).use { out ->
-                        out.write(getUserDebug(false))
-                        out.write("\n\n")
-                        out.flush()
-                        LogBuffer.output(outputStream)
-                        outputStream.flush()
-                        out.close()
-
-                        val fileUri =
-                            FileUtil.createUriWithReadPermissions(debugFile, intent, context)
-                        intent.putExtra(Intent.EXTRA_STREAM, fileUri)
-                        intent.putExtra(
-                            Intent.EXTRA_TEXT,
-                            HtmlCompat.fromHtml(
-                                "$intro<br/><br/>",
-                                HtmlCompat.FROM_HTML_MODE_COMPACT
-                            )
+                val debugFile = saveDebugLogs()
+                FileOutputStream(debugFile).use {
+                    val fileUri =
+                        FileUtil.createUriWithReadPermissions(debugFile, intent, context)
+                    intent.putExtra(Intent.EXTRA_STREAM, fileUri)
+                    intent.putExtra(
+                        Intent.EXTRA_TEXT,
+                        HtmlCompat.fromHtml(
+                            "$intro<br/><br/>",
+                            HtmlCompat.FROM_HTML_MODE_COMPACT
                         )
-                    }
+                    )
                 }
             } catch (e: Exception) {
                 Timber.e(e)
@@ -134,6 +122,24 @@ class Support @Inject constructor(
         dialog.dismiss()
 
         return intent
+    }
+
+    suspend fun saveDebugLogs(): File {
+        val emailFolder = File(context.filesDir, "email")
+        emailFolder.mkdirs()
+        val debugFile = File(emailFolder, "debug.txt")
+
+        FileOutputStream(debugFile).use { outputStream ->
+            BufferedWriter(OutputStreamWriter(outputStream)).use { out ->
+                out.write(getUserDebug(false))
+                out.write("\n\n")
+                out.flush()
+                LogBuffer.output(outputStream)
+                outputStream.flush()
+                out.close()
+            }
+        }
+        return debugFile
     }
 
     @Suppress("DEPRECATION")
