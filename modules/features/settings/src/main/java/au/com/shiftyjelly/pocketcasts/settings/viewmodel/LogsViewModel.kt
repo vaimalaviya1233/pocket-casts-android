@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import au.com.shiftyjelly.pocketcasts.encryptedlogging.LogEncrypter
 import au.com.shiftyjelly.pocketcasts.encryptedlogging.di.EncryptedLoggingModule
+import au.com.shiftyjelly.pocketcasts.preferences.Settings
 import au.com.shiftyjelly.pocketcasts.repositories.encryptedlogging.EncryptedLoggingManager
 import au.com.shiftyjelly.pocketcasts.repositories.support.Support
 import au.com.shiftyjelly.pocketcasts.utils.AppPlatform
@@ -19,7 +20,6 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import java.io.File
-import java.util.UUID
 import javax.inject.Inject
 import au.com.shiftyjelly.pocketcasts.localization.R as LR
 
@@ -29,6 +29,7 @@ class LogsViewModel @Inject constructor(
     private val logEncrypter: LogEncrypter,
     private val encryptedLoggingManager: EncryptedLoggingManager,
     private val appSecrets: EncryptedLoggingModule.AppSecrets,
+    private val settings: Settings,
 ) : ViewModel() {
 
     data class State(
@@ -77,7 +78,7 @@ class LogsViewModel @Inject constructor(
             return
         }
         try {
-            val uuid = UUID.randomUUID().toString()
+            val uuid = settings.getUniqueDeviceId()
             val encryptedText = logEncrypter.encrypt(text = file.readText(), uuid = uuid)
             val result = encryptedLoggingManager.uploadEncryptedLogs(uuid, appSecrets.appSecret, encryptedText.toByteArray())
             Timber.d(result.toString())
