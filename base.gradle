@@ -27,6 +27,9 @@ android {
         buildConfigField "String", "SETTINGS_ENCRYPT_SECRET", "\"${project.settingsEncryptSecret}\""
         buildConfigField "String", "SHARING_SERVER_SECRET", "\"${project.sharingServerSecret}\""
         buildConfigField "String", "GOOGLE_SIGN_IN_SERVER_CLIENT_ID", "\"${project.googleSignInServerClientId}\""
+        buildConfigField "String", "WP_OAUTH_APP_ID", "\"${project.wpOauthAppId}\""
+        buildConfigField "String", "WP_OAUTH_APP_SECRET", "\"${project.wpOauthAppSecret}\""
+        buildConfigField "String", "WP_ENCRYTPED_LOGGING_KEY", "\"${project.wpEncrytpedLoggingKey}\""
 
         // Feature Flags
         buildConfigField "boolean", "END_OF_YEAR_ENABLED", "false"
