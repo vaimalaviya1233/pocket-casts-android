@@ -82,6 +82,7 @@ project.ext {
     sharingServerSecret = secretProperties.getProperty("pocketcastsSharingServerSecret", "")
     pocketcastsSentryDsn = secretProperties.getProperty("pocketcastsSentryDsn", "")
     googleSignInServerClientId = secretProperties.getProperty("googleSignInServerClientId", "")
+    zendeskApiKey = secretProperties.getProperty("zendeskApiKey", "")
 
     // Library versions
     versionAccessibilityTestFramework = '4.0.0'
