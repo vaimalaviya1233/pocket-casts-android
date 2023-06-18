@@ -30,6 +30,7 @@ android {
         buildConfigField "String", "WP_OAUTH_APP_ID", "\"${project.wpOauthAppId}\""
         buildConfigField "String", "WP_OAUTH_APP_SECRET", "\"${project.wpOauthAppSecret}\""
         buildConfigField "String", "WP_ENCRYTPED_LOGGING_KEY", "\"${project.wpEncrytpedLoggingKey}\""
+        buildConfigField "String", "ZENDESK_API_KEY", "\"${project.zendeskApiKey}\""
 
         // Feature Flags
         buildConfigField "boolean", "END_OF_YEAR_ENABLED", "false"
