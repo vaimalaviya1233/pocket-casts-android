@@ -33,6 +33,8 @@ interface Settings {
         const val SERVER_LIST_HOST = BuildConfig.SERVER_LIST_HOST
         const val WP_COM_API_URL = "https://public-api.wordpress.com"
 
+        const val ZENDESK_URL = "https://woothemes.zendesk.com"
+
         const val SHARING_SERVER_SECRET = BuildConfig.SHARING_SERVER_SECRET
         val SETTINGS_ENCRYPT_SECRET = BuildConfig.SETTINGS_ENCRYPT_SECRET.toCharArray()
 
