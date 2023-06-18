@@ -5,9 +5,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import au.com.shiftyjelly.pocketcasts.encryptedlogging.LogEncrypter
 import au.com.shiftyjelly.pocketcasts.encryptedlogging.di.EncryptedLoggingModule
+import au.com.shiftyjelly.pocketcasts.models.to.SubscriptionStatus
 import au.com.shiftyjelly.pocketcasts.preferences.Settings
 import au.com.shiftyjelly.pocketcasts.repositories.encryptedlogging.EncryptedLoggingManager
+import au.com.shiftyjelly.pocketcasts.repositories.subscription.SubscriptionManager
 import au.com.shiftyjelly.pocketcasts.repositories.support.Support
+import au.com.shiftyjelly.pocketcasts.repositories.sync.SyncManager
+import au.com.shiftyjelly.pocketcasts.servers.zendesk.ZDSupportRequest
+import au.com.shiftyjelly.pocketcasts.servers.zendesk.ZDSupportRequestWrapper
+import au.com.shiftyjelly.pocketcasts.servers.zendesk.ZendeskServerManager
 import au.com.shiftyjelly.pocketcasts.utils.AppPlatform
 import au.com.shiftyjelly.pocketcasts.utils.Util
 import au.com.shiftyjelly.pocketcasts.utils.log.LogBuffer
@@ -30,6 +36,9 @@ class LogsViewModel @Inject constructor(
     private val encryptedLoggingManager: EncryptedLoggingManager,
     private val appSecrets: EncryptedLoggingModule.AppSecrets,
     private val settings: Settings,
+    private val zendeskServerManager: ZendeskServerManager,
+    private val syncManager: SyncManager,
+    private val subscriptionManager: SubscriptionManager,
 ) : ViewModel() {
 
     data class State(
@@ -80,12 +89,41 @@ class LogsViewModel @Inject constructor(
         try {
             val uuid = settings.getUniqueDeviceId()
             val encryptedText = logEncrypter.encrypt(text = file.readText(), uuid = uuid)
-            val result = encryptedLoggingManager.uploadEncryptedLogs(uuid, appSecrets.appSecret, encryptedText.toByteArray())
-            Timber.d(result.toString())
+            encryptedLoggingManager.uploadEncryptedLogs(uuid, appSecrets.appSecret, encryptedText.toByteArray())
+
+            if (syncManager.isLoggedIn()) {
+                val isPlus = subscriptionManager.getCachedStatus() is SubscriptionStatus.Plus
+                zendeskServerManager.createRequest(
+                    ZDSupportRequestWrapper(
+                        request = ZDSupportRequest(
+                            requester = ZDSupportRequest.ZDRequester(
+                                email = requireNotNull(syncManager.getEmail())
+                            ),
+                            subject = "Android v${settings.getVersion()} ${if (isPlus) " - Plus Account" else ""}",
+                            comment = ZDSupportRequest.ZDComment(
+                                body = "Ignore it"
+                            ),
+                            customFields = listOf(
+                                ZDSupportRequest.ZDCustomField(
+                                    id = SupportCustomField.DebugLog.value,
+                                    value = uuid
+                                )
+                            ),
+                            tags = listOf(
+                                "platform_automotive", "app_version_${settings.getVersion()}", "pocket_casts"
+                            )
+                        )
+                    )
+                )
+            }
         } catch (e: UnsatisfiedLinkError) {
             Timber.e(e.message)
         }
     }
 
     private fun isValidFile(file: File): Boolean = file.exists() && file.canRead()
+
+    enum class SupportCustomField(val value: Long) {
+        DebugLog(360049192052L)
+    }
 }

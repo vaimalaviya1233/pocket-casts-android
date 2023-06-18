@@ -14,6 +14,7 @@ import au.com.shiftyjelly.pocketcasts.localization.extensions.getStringPluralSec
 import au.com.shiftyjelly.pocketcasts.models.to.RefreshState
 import au.com.shiftyjelly.pocketcasts.preferences.Settings
 import au.com.shiftyjelly.pocketcasts.repositories.podcast.PodcastManager
+import au.com.shiftyjelly.pocketcasts.repositories.sync.SyncAccountManager
 import au.com.shiftyjelly.pocketcasts.settings.LogsFragment
 import au.com.shiftyjelly.pocketcasts.ui.helper.FragmentHostListener
 import au.com.shiftyjelly.pocketcasts.views.extensions.setInputAsSeconds
@@ -30,6 +31,7 @@ class AutomotiveSettingsPreferenceFragment : PreferenceFragmentCompat(), Observe
 
     @Inject lateinit var settings: Settings
     @Inject lateinit var podcastManager: PodcastManager
+    @Inject lateinit var syncManager: SyncAccountManager
 
     private var preferenceRefreshNow: Preference? = null
     private var preferenceSkipForward: EditTextPreference? = null
@@ -48,7 +50,9 @@ class AutomotiveSettingsPreferenceFragment : PreferenceFragmentCompat(), Observe
 
         changeSkipTitles()
         setupRefreshNow()
-        setupLogs()
+        if (syncManager.isLoggedIn()) {
+            setupLogs()
+        }
         setupAbout()
     }
 
