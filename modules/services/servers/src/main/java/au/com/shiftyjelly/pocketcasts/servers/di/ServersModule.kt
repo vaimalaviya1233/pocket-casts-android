@@ -355,6 +355,17 @@ class ServersModule {
             platform
         )
     }
+
+    @Provides
+    @ZendeskServerRetrofit
+    @Singleton
+    internal fun provideZendeskServerRetrofit(@CachedOkHttpClient okHttpClient: OkHttpClient, moshi: Moshi): Retrofit {
+        return Retrofit.Builder()
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .baseUrl(Settings.ZENDESK_URL)
+            .client(okHttpClient)
+            .build()
+    }
 }
 
 @Qualifier
@@ -412,6 +423,10 @@ annotation class SyncServerRetrofit
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class WpComServerRetrofit
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class ZendeskServerRetrofit
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
