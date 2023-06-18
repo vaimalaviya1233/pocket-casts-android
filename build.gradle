@@ -84,5 +84,6 @@ allprojects {
                 includeGroup "com.automattic.tracks"
             }
         }
+        maven { url 'https://zendesk.jfrog.io/zendesk/repo' }
     }
 }

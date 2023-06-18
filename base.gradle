@@ -246,6 +246,7 @@ dependencies {
     implementation libs.media3ExoplayerHls
     implementation libs.media3Extractor
     implementation libs.media3Ui
+    implementation libs.zendesk
 
     kapt libs.moshiKotlinCompile
     kapt libs.glideCompile

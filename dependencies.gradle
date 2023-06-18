@@ -293,6 +293,7 @@ project.ext {
             // AboutLibraries - https://github.com/mikepenz/AboutLibraries
             aboutLibrariesCore: 'com.mikepenz:aboutlibraries-core:10.5.0',
             aboutLibrariesCompose: 'com.mikepenz:aboutlibraries-compose:10.5.0',
-
+            // Zendesk
+            zendesk: 'com.zendesk:support:5.1.2'
     ]
 }
