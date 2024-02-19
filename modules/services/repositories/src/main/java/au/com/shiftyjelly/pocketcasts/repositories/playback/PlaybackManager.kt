@@ -1261,6 +1261,10 @@ open class PlaybackManager @Inject constructor(
             episodeManager.updateAutoDownloadStatus(episode, PodcastEpisode.AUTO_DOWNLOAD_STATUS_IGNORE)
             removeEpisodeFromQueue(episode, "finished", downloadManager)
 
+            if (!episode.isDownloaded) {
+                episodeManager.deleteEpisodeFile(episode, this, true)
+            }
+
             // mark as played
             episodeManager.updatePlayingStatus(episode, EpisodePlayingStatus.COMPLETED)
 
@@ -1625,7 +1629,6 @@ open class PlaybackManager @Inject constructor(
 
             else -> null
         }
-
         if (episode == null) {
             val nextEpisode = autoLoadEpisode(autoPlay = play)
             if (nextEpisode == null) {
@@ -1633,6 +1636,10 @@ open class PlaybackManager @Inject constructor(
                 shutdown()
             }
             return
+        }
+
+        if (!episode.isDownloaded) {
+            downloadManager.addEpisodeToQueue(episode, "play", false)
         }
 
         val podcast = findPodcastByEpisode(episode)
