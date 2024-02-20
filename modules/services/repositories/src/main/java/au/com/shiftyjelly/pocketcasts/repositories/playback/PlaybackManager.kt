@@ -1261,7 +1261,7 @@ open class PlaybackManager @Inject constructor(
             episodeManager.updateAutoDownloadStatus(episode, PodcastEpisode.AUTO_DOWNLOAD_STATUS_IGNORE)
             removeEpisodeFromQueue(episode, "finished", downloadManager)
 
-            if (!episode.isDownloaded) {
+            if (episode.isDownloaded) {
                 episodeManager.deleteEpisodeFile(episode, this, true)
             }
 
@@ -1638,7 +1638,10 @@ open class PlaybackManager @Inject constructor(
             return
         }
 
-        if (!episode.isDownloaded) {
+        Timber.d("@@@@@ -> episode.isAutoDownloaded: " + episode.isAutoDownloaded)
+
+        if (!episode.isDownloaded && !episode.isDownloading) {
+            Timber.d("@@@@@ -> Entrou na fila: " + episode.title)
             downloadManager.addEpisodeToQueue(episode, "play", false)
         }
 

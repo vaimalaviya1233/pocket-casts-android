@@ -18,11 +18,18 @@
         android:title="@string/podcast_notifications" />
 
     <SwitchPreference
-        android:key="autoDownload"
+        android:key="autoDownload2"
         android:defaultValue="false"
         android:persistent="false"
         android:title="@string/podcast_settings_auto_download"
         android:summary="@string/podcast_settings_auto_download_summary" />
+
+    <SwitchPreference
+        android:key="autoDownload"
+        android:defaultValue="false"
+        android:persistent="false"
+        android:title="Download when play"
+        android:summary="Download the episode when it starts streaming"/>
 
     <SwitchPreference
         android:key="addToUpNext"

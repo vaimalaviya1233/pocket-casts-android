@@ -59,6 +59,7 @@ class PodcastSettingsFragment : BasePreferenceFragment(), FilterSelectFragment.L
     private var preferenceFeedIssueDetected: Preference? = null
     private var preferenceNotifications: SwitchPreference? = null
     private var preferenceAutoDownload: SwitchPreference? = null
+    private var preferenceAutoDownload2: SwitchPreference? = null
     private var preferenceAddToUpNext: SwitchPreference? = null
     private var preferenceAddToUpNextOrder: ListPreference? = null
     private var preferenceAddToUpNextGlobal: Preference? = null
@@ -99,6 +100,7 @@ class PodcastSettingsFragment : BasePreferenceFragment(), FilterSelectFragment.L
         preferenceFeedIssueDetected = preferenceManager.findPreference("feedIssueDetected")
         preferenceNotifications = preferenceManager.findPreference("notifications")
         preferenceAutoDownload = preferenceManager.findPreference("autoDownload")
+        preferenceAutoDownload2 = preferenceManager.findPreference("autoDownload2")
         preferenceAddToUpNext = preferenceManager.findPreference("addToUpNext")
         preferenceAddToUpNextOrder = preferenceManager.findPreference("addToUpNextOrder")
         preferenceAddToUpNextGlobal = preferenceManager.findPreference("addToUpNextGlobal")
@@ -154,6 +156,7 @@ class PodcastSettingsFragment : BasePreferenceFragment(), FilterSelectFragment.L
             preferenceNotifications?.isChecked = podcast.isShowNotifications
 
             preferenceAutoDownload?.isChecked = podcast.isAutoDownloadNewEpisodes
+            preferenceAutoDownload2?.isChecked = podcast.isAutoDownloadNewEpisodes
 
             preferenceAddToUpNext?.isChecked = !podcast.isAutoAddToUpNextOff
             preferenceAddToUpNextOrder?.isVisible = !podcast.isAutoAddToUpNextOff
@@ -457,6 +460,7 @@ class PodcastSettingsFragment : BasePreferenceFragment(), FilterSelectFragment.L
         val context = preferenceManager.context
         preferenceNotifications?.icon = context.getTintedDrawable(R.drawable.ic_notifications, tintColor)
         preferenceAutoDownload?.icon = context.getTintedDrawable(IR.drawable.ic_download, tintColor)
+        preferenceAutoDownload2?.icon = context.getTintedDrawable(IR.drawable.ic_download, tintColor)
         preferenceAddToUpNext?.icon = context.getTintedDrawable(IR.drawable.ic_upnext, tintColor)
         preferenceSkipFirst?.icon = context.getTintedDrawable(R.drawable.ic_skipintros, tintColor)
         preferenceAutoArchive?.icon = context.getTintedDrawable(IR.drawable.ic_archive, tintColor)
