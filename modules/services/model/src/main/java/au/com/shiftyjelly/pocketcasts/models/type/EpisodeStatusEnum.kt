@@ -8,4 +8,7 @@ enum class EpisodeStatusEnum {
     DOWNLOADED,
     WAITING_FOR_WIFI,
     WAITING_FOR_POWER,
+    CACHING,
+    CACHED,
+    CACHE_FAILED,
 }

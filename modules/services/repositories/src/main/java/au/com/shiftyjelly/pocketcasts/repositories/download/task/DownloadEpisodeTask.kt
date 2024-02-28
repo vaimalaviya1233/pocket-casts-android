@@ -106,12 +106,14 @@ class DownloadEpisodeTask @AssistedInject constructor(
         const val OUTPUT_ERROR_MESSAGE = "error_message"
         const val OUTPUT_EPISODE_UUID = "episode_uuid"
         const val OUTPUT_CANCELLED = "cancelled"
+        const val IS_CACHING = "isCaching"
     }
 
     private lateinit var episode: BaseEpisode
     private val episodeUUID: String? = inputData.getString(INPUT_EPISODE_UUID)
     private val pathToSaveTo: String? = inputData.getString(INPUT_PATH_TO_SAVE_TO)
     private val tempDownloadPath: String? = inputData.getString(INPUT_TEMP_PATH)
+    private val isCaching: Boolean = inputData.getBoolean(IS_CACHING, false)
 
     private var bytesDownloadedSoFar: Long = 0
     private var bytesRemaining: Long = 0
@@ -144,7 +146,11 @@ class DownloadEpisodeTask @AssistedInject constructor(
             }
 
             runBlocking {
-                episodeManager.updateEpisodeStatus(episode, EpisodeStatusEnum.DOWNLOADING)
+                if (isCaching) {
+                    episodeManager.updateEpisodeStatus(episode, EpisodeStatusEnum.CACHING)
+                } else {
+                    episodeManager.updateEpisodeStatus(episode, EpisodeStatusEnum.DOWNLOADING)
+                }
             }
 
             download()
@@ -154,9 +160,13 @@ class DownloadEpisodeTask @AssistedInject constructor(
 
             if (!isStopped) {
                 pathToSaveTo?.let {
-                    episodeManager.updateDownloadFilePath(episode, it, false)
+                    episodeManager.updateDownloadFilePath(episode, it, markAsDownloaded = false, isCaching = isCaching)
                     runBlocking {
-                        episodeManager.updateEpisodeStatus(episode, EpisodeStatusEnum.DOWNLOADED)
+                        if (isCaching) {
+                            episodeManager.updateEpisodeStatus(episode, EpisodeStatusEnum.CACHED)
+                        } else {
+                            episodeManager.updateEpisodeStatus(episode, EpisodeStatusEnum.DOWNLOADED)
+                        }
                     }
                 }
 
@@ -217,7 +227,11 @@ class DownloadEpisodeTask @AssistedInject constructor(
             .build()
 
         runBlocking {
-            episodeManager.updateEpisodeStatus(episode, EpisodeStatusEnum.DOWNLOAD_FAILED)
+            if (isCaching) {
+                episodeManager.updateEpisodeStatus(episode, EpisodeStatusEnum.CACHE_FAILED)
+            } else {
+                episodeManager.updateEpisodeStatus(episode, EpisodeStatusEnum.DOWNLOAD_FAILED)
+            }
         }
         val message = if (downloadMessage.isNullOrBlank()) "Download Failed" else downloadMessage
         episodeManager.updateDownloadErrorDetails(episode, message)

@@ -218,7 +218,7 @@ open class FileStorage @Inject constructor(
     }
 
     private fun List<Pair<File, PodcastEpisode>>.updateEpisodesWithNewFilePaths(episodeManager: EpisodeManager) = forEach { (file, episode) ->
-        episodeManager.updateDownloadFilePath(episode, file.absolutePath, markAsDownloaded = true)
+        episodeManager.updateDownloadFilePath(episode, file.absolutePath, markAsDownloaded = true, isCaching = false)
     }
 
     private fun List<PodcastEpisode>.matchWithDownloadedFilePaths() = mapNotNull { episode ->
@@ -233,7 +233,7 @@ open class FileStorage @Inject constructor(
 
     private fun List<Pair<PodcastEpisode, String>>.moveFilesToEpisodesDirAndUpdatePaths(episodeManager: EpisodeManager, episodesDir: File) = forEach { (episode, path) ->
         moveFileToDir(path, episodesDir)?.let { updatedPath ->
-            episodeManager.updateDownloadFilePath(episode, updatedPath, markAsDownloaded = false)
+            episodeManager.updateDownloadFilePath(episode, updatedPath, markAsDownloaded = false, isCaching = false)
         }
     }
 

@@ -373,7 +373,7 @@ class EpisodeManagerImpl @Inject constructor(
         }
     }
 
-    override fun updateDownloadFilePath(episode: BaseEpisode?, filePath: String, markAsDownloaded: Boolean) {
+    override fun updateDownloadFilePath(episode: BaseEpisode?, filePath: String, markAsDownloaded: Boolean, isCaching: Boolean) {
         episode ?: return
         episode.downloadedFilePath = filePath
         if (episode is PodcastEpisode) {
@@ -384,7 +384,11 @@ class EpisodeManagerImpl @Inject constructor(
 
         if (markAsDownloaded) {
             runBlocking {
-                updateEpisodeStatus(episode, EpisodeStatusEnum.DOWNLOADED)
+                if (isCaching) {
+                    updateEpisodeStatus(episode, EpisodeStatusEnum.CACHED)
+                } else {
+                    updateEpisodeStatus(episode, EpisodeStatusEnum.DOWNLOADED)
+                }
             }
         }
     }

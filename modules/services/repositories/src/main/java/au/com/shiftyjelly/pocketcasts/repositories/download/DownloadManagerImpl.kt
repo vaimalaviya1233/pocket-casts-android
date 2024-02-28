@@ -188,7 +188,9 @@ class DownloadManagerImpl @Inject constructor(
                                 }
 
                                 val errorMessage = workInfo.outputData.getString(DownloadEpisodeTask.OUTPUT_ERROR_MESSAGE)
-                                episodeDidDownload(DownloadResult.failedResult(workInfo.id, errorMessage, episodeUUID))
+                                val episodeStatus = episodeManager.findEpisodeByUuid(episodeUUID)?.episodeStatus
+                                val isCached = episodeStatus == EpisodeStatusEnum.CACHED
+                                episodeDidDownload(DownloadResult.failedResult(workInfo.id, errorMessage, episodeUUID), isCached)
                             }
                         }
                         WorkInfo.State.SUCCEEDED -> {
@@ -203,7 +205,9 @@ class DownloadManagerImpl @Inject constructor(
                                     false,
                                 )
                                 if (!wasCancelled) {
-                                    episodeDidDownload(DownloadResult.successResult(workInfo.id, episodeUUID))
+                                    val episodeStatus = episodeManager.findEpisodeByUuid(episodeUUID)?.episodeStatus
+                                    val isCached = episodeStatus == EpisodeStatusEnum.CACHED
+                                    episodeDidDownload(DownloadResult.successResult(workInfo.id, episodeUUID), isCached)
                                 }
                             }
                         }
@@ -364,7 +368,8 @@ class DownloadManagerImpl @Inject constructor(
             }
         } catch (storageException: StorageException) {
             launch(downloadsCoroutineContext) {
-                episodeDidDownload(DownloadResult.failedResult(null, "Insufficient storage space", episode.uuid))
+                val isCached = episode.episodeStatus == EpisodeStatusEnum.CACHED
+                episodeDidDownload(DownloadResult.failedResult(null, "Insufficient storage space", episode.uuid), isCached)
             }
         }
     }
@@ -403,7 +408,7 @@ class DownloadManagerImpl @Inject constructor(
         progressUpdates.remove(info.episodeUUID)
     }
 
-    private suspend fun episodeDidDownload(result: DownloadResult) = withContext(downloadsCoroutineContext) {
+    private suspend fun episodeDidDownload(result: DownloadResult, isCached: Boolean) = withContext(downloadsCoroutineContext) {
         val episode = episodeManager.findEpisodeByUuid(result.episodeUuid)
 
         try {
@@ -417,8 +422,12 @@ class DownloadManagerImpl @Inject constructor(
             episodeManager.updateDownloadTaskId(episode, null)
 
             if (result.success) {
-                episodeManager.updateEpisodeStatus(episode, EpisodeStatusEnum.DOWNLOADED)
-                episodeAnalytics.trackEvent(AnalyticsEvent.EPISODE_DOWNLOAD_FINISHED, uuid = episode.uuid)
+                if (isCached) {
+                    episodeManager.updateEpisodeStatus(episode, EpisodeStatusEnum.CACHED)
+                } else {
+                    episodeManager.updateEpisodeStatus(episode, EpisodeStatusEnum.DOWNLOADED)
+                    episodeAnalytics.trackEvent(AnalyticsEvent.EPISODE_DOWNLOAD_FINISHED, uuid = episode.uuid)
+                }
 
                 RefreshPodcastsThread.updateNotifications(settings.getNotificationLastSeen(), settings, podcastManager, episodeManager, notificationHelper, context)
             } else {
