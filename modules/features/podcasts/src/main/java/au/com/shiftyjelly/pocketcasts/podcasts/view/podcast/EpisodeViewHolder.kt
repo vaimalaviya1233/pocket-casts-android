@@ -34,6 +34,8 @@ import au.com.shiftyjelly.pocketcasts.repositories.playback.containsUuid
 import au.com.shiftyjelly.pocketcasts.ui.extensions.getThemeColor
 import au.com.shiftyjelly.pocketcasts.ui.helper.ColorUtils
 import au.com.shiftyjelly.pocketcasts.utils.extensions.dpToPx
+import au.com.shiftyjelly.pocketcasts.utils.featureflag.Feature
+import au.com.shiftyjelly.pocketcasts.utils.featureflag.FeatureFlag
 import au.com.shiftyjelly.pocketcasts.views.helper.EpisodeItemTouchHelper
 import au.com.shiftyjelly.pocketcasts.views.helper.RowSwipeable
 import au.com.shiftyjelly.pocketcasts.views.helper.SwipeButtonLayout
@@ -220,15 +222,18 @@ class EpisodeViewHolder constructor(
                 progressCircle.isVisible = false
                 progressBar.isVisible = false
                 imgIcon.alpha = 1.0f
+
+                val isEpisodeCached = episode.isAutomaticallyCached && FeatureFlag.isEnabled(Feature.CACHE_PLAYING_EPISODE)
+
                 if (combinedData.playbackState.episodeUuid == episode.uuid && combinedData.playbackState.isBuffering) {
                     progressBar.isVisible = true
                     lblStatus.text = context.getString(LR.string.episode_row_buffering)
-                } else if (episode.episodeStatus == EpisodeStatusEnum.DOWNLOADED) {
+                } else if (episode.episodeStatus == EpisodeStatusEnum.DOWNLOADED && !isEpisodeCached) {
                     imgIcon.isVisible = true
                     imgIcon.setImageResource(IR.drawable.ic_downloaded)
                     updateTimeLeft(textView = lblStatus, episode = episode)
                     ImageViewCompat.setImageTintList(imgIcon, ColorStateList.valueOf(context.getThemeColor(UR.attr.support_02)))
-                } else if (episode.episodeStatus == EpisodeStatusEnum.DOWNLOADING) {
+                } else if (episode.episodeStatus == EpisodeStatusEnum.DOWNLOADING && !isEpisodeCached) {
                     progressCircle.isVisible = true
                     lblStatus.text = context.getString(LR.string.episode_row_downloading, combinedData.downloadProgress)
                     progressCircle.setPercent(combinedData.downloadProgress / 100.0f)
