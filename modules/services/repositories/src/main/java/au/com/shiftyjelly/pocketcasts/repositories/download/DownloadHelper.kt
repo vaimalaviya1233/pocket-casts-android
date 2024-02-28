@@ -19,7 +19,7 @@ object DownloadHelper {
         runBlocking {
             episodeManager.updateAutoDownloadStatus(episode, PodcastEpisode.AUTO_DOWNLOAD_STATUS_MANUALLY_DOWNLOADED)
         }
-        downloadManager.addEpisodeToQueue(episode, from, true)
+        downloadManager.addEpisodeToQueue(episode, from, fireEvent = true, isCaching = false)
     }
 
     fun addAutoDownloadedEpisodeToQueue(episode: BaseEpisode, from: String, downloadManager: DownloadManager, episodeManager: EpisodeManager) {
@@ -33,7 +33,7 @@ object DownloadHelper {
         runBlocking {
             episodeManager.updateAutoDownloadStatus(episode, PodcastEpisode.AUTO_DOWNLOAD_STATUS_AUTO_DOWNLOADED)
         }
-        downloadManager.addEpisodeToQueue(episode, from, true)
+        downloadManager.addEpisodeToQueue(episode, from, fireEvent = true, isCaching = false)
     }
 
     fun removeEpisodeFromQueue(episode: BaseEpisode, from: String, downloadManager: DownloadManager) {

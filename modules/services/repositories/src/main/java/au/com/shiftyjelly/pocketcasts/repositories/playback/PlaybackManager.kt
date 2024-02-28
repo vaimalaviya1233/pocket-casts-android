@@ -2333,7 +2333,7 @@ open class PlaybackManager @Inject constructor(
             !Util.isAutomotive(application) && !Util.isWearOs(application)
         ) {
             episodeManager.updateAutomaticallyCachedStatus(episode, automaticallyCached = true)
-            downloadManager.addEpisodeToQueue(episode, "cache episode", false)
+            downloadManager.addEpisodeToQueue(episode, "cache episode", false, FeatureFlag.isEnabled(Feature.CACHE_PLAYING_EPISODE))
         }
     }
 
