@@ -37,6 +37,8 @@ import au.com.shiftyjelly.pocketcasts.utils.Network
 import au.com.shiftyjelly.pocketcasts.utils.Power
 import au.com.shiftyjelly.pocketcasts.utils.Util
 import au.com.shiftyjelly.pocketcasts.utils.combineLatest
+import au.com.shiftyjelly.pocketcasts.utils.featureflag.Feature
+import au.com.shiftyjelly.pocketcasts.utils.featureflag.FeatureFlag
 import au.com.shiftyjelly.pocketcasts.utils.log.LogBuffer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.subjects.ReplaySubject
@@ -548,8 +550,8 @@ class DownloadManagerImpl @Inject constructor(
             }
             max /= 1000
             notificationBuilder.setProgress(max.toInt(), progress.toInt(), false)
-
-            if (System.currentTimeMillis() - lastReportedNotificationTime > MIN_TIME_BETWEEN_UPDATE_REPORTS) {
+            val isEpisodeCached = FeatureFlag.isEnabled(Feature.CACHE_PLAYING_EPISODE) && episodeOne.isAutomaticallyCached
+            if (System.currentTimeMillis() - lastReportedNotificationTime > MIN_TIME_BETWEEN_UPDATE_REPORTS && !isEpisodeCached) {
                 notificationManager.notify(NotificationId.DOWNLOADING.value, notificationBuilder.build())
                 lastReportedNotificationTime = System.currentTimeMillis()
             }

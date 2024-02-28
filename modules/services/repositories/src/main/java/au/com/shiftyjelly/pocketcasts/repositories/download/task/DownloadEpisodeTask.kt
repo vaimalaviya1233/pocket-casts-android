@@ -29,6 +29,8 @@ import au.com.shiftyjelly.pocketcasts.repositories.podcast.UserEpisodeManager
 import au.com.shiftyjelly.pocketcasts.utils.FileUtil
 import au.com.shiftyjelly.pocketcasts.utils.Util
 import au.com.shiftyjelly.pocketcasts.utils.extensions.anyMessageContains
+import au.com.shiftyjelly.pocketcasts.utils.featureflag.Feature
+import au.com.shiftyjelly.pocketcasts.utils.featureflag.FeatureFlag
 import au.com.shiftyjelly.pocketcasts.utils.log.LogBuffer
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -139,7 +141,8 @@ class DownloadEpisodeTask @AssistedInject constructor(
             }
 
             LogBuffer.i(LogBuffer.TAG_BACKGROUND_TASKS, "Worker Downloading episode ${episode.title} ${episode.uuid}")
-            if (!Util.isWearOs(context)) {
+            val isEpisodeCached = FeatureFlag.isEnabled(Feature.CACHE_PLAYING_EPISODE) && this.episode is PodcastEpisode && (this.episode as PodcastEpisode).isAutomaticallyCached
+            if (!Util.isWearOs(context) && !isEpisodeCached) {
                 setForegroundAsync(createForegroundInfo())
             }
 
@@ -148,7 +151,9 @@ class DownloadEpisodeTask @AssistedInject constructor(
             }
 
             download()
-                .doOnNext { updateProgress(it) }
+                .doOnNext {
+                    if (!isEpisodeCached) { updateProgress(it) }
+                }
                 .ignoreElements()
                 .blockingAwait()
 
