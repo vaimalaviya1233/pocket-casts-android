@@ -6,16 +6,31 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.neverEqualPolicy
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.widget.ConstraintLayout
-import au.com.shiftyjelly.pocketcasts.account.ProfileCircleView
 import au.com.shiftyjelly.pocketcasts.compose.AppTheme
 import au.com.shiftyjelly.pocketcasts.compose.images.SubscriptionBadge
 import au.com.shiftyjelly.pocketcasts.localization.extensions.getStringPluralDaysMonthsOrYears
@@ -27,11 +42,16 @@ import au.com.shiftyjelly.pocketcasts.models.type.SubscriptionPlatform
 import au.com.shiftyjelly.pocketcasts.models.type.SubscriptionTier
 import au.com.shiftyjelly.pocketcasts.ui.extensions.getThemeColor
 import au.com.shiftyjelly.pocketcasts.ui.theme.Theme
-import au.com.shiftyjelly.pocketcasts.utils.Gravatar
-import au.com.shiftyjelly.pocketcasts.utils.TimeConstants
 import au.com.shiftyjelly.pocketcasts.utils.Util
-import au.com.shiftyjelly.pocketcasts.utils.days
 import au.com.shiftyjelly.pocketcasts.utils.extensions.toLocalizedFormatLongStyle
+import com.gravatar.api.models.UserProfiles
+import com.gravatar.services.ErrorType
+import com.gravatar.services.GravatarListener
+import com.gravatar.services.ProfileService
+import com.gravatar.types.Email
+import com.gravatar.ui.GravatarTheme
+import com.gravatar.ui.LocalGravatarTheme
+import com.gravatar.ui.components.LargeProfileSummary
 import java.util.Date
 import au.com.shiftyjelly.pocketcasts.images.R as IR
 import au.com.shiftyjelly.pocketcasts.localization.R as LR
@@ -54,8 +74,9 @@ open class UserView @JvmOverloads constructor(
     val maxSubscriptionExpiryMs = 30L * 24L * 60L * 60L * 1000L
     val lblUserEmail: TextView
     val lblSignInStatus: TextView?
-    val imgProfilePicture: ProfileCircleView
+
     val btnAccount: Button?
+    val gravatarProfile: ComposeView?
     private val subscriptionBadge: ComposeView?
     private val isDarkTheme: Boolean
         get() = Theme.isDark(context)
@@ -64,58 +85,18 @@ open class UserView @JvmOverloads constructor(
         LayoutInflater.from(context).inflate(layoutResource, this, true)
         lblUserEmail = findViewById(R.id.lblUserEmail)
         lblSignInStatus = findViewById(R.id.lblSignInStatus)
-        imgProfilePicture = findViewById(R.id.imgProfilePicture)
         btnAccount = findViewById(R.id.btnAccount)
         subscriptionBadge = findViewById(R.id.subscriptionBadge)
+        gravatarProfile = findViewById(R.id.gravatarProfile)
     }
 
     open fun update(signInState: SignInState?) {
-        updateProfileImageAndDaysRemaining(signInState)
         updateEmail(signInState)
         updateSubscriptionBadge(signInState)
         updateAccountButton(signInState)
+        updateGravatarProfile(signInState)
     }
 
-    private fun updateProfileImageAndDaysRemaining(
-        signInState: SignInState?,
-    ) {
-        when (signInState) {
-            is SignInState.SignedIn -> {
-                val gravatarUrl = Gravatar.getUrl(signInState.email)
-                var percent = 1.0f
-                val daysLeft = daysLeft(signInState, 30)
-                if (daysLeft != null && daysLeft > 0 && daysLeft <= 30) {
-                    percent = daysLeft / 30f
-                }
-                imgProfilePicture.setup(
-                    percent = percent,
-                    plusOnly = signInState.isSignedInAsPlus,
-                    isPatron = signInState.isSignedInAsPatron,
-                    gravatarUrl = gravatarUrl,
-                )
-            }
-            is SignInState.SignedOut -> imgProfilePicture.setup(
-                percent = 0.0f,
-                plusOnly = false,
-                isPatron = false,
-            )
-            else -> imgProfilePicture.setup(
-                percent = 0.0f,
-                plusOnly = false,
-                isPatron = false,
-            )
-        }
-    }
-
-    private fun daysLeft(signInState: SignInState.SignedIn, maxDays: Int): Int? {
-        val timeInXDays = Date(Date().time + maxDays.days())
-        val paidStatus = signInState.subscriptionStatus as? SubscriptionStatus.Paid
-        if (paidStatus != null && paidStatus.expiry.before(timeInXDays)) {
-            // probably shouldn't be do straight millisecond maths because of day light savings
-            return ((paidStatus.expiry.time - Date().time) / TimeConstants.MILLISECONDS_IN_ONE_DAY).toInt()
-        }
-        return null
-    }
 
     private fun setDaysRemainingTextIfNeeded(signInState: SignInState.SignedIn) {
         val status = ((signInState as? SignInState.SignedIn)?.subscriptionStatus as? SubscriptionStatus.Paid) ?: return
@@ -145,11 +126,75 @@ open class UserView @JvmOverloads constructor(
 
                 if (this !is ExpandedUserView) setDaysRemainingTextIfNeeded(signInState)
             }
+
             is SignInState.SignedOut -> {
                 lblUserEmail.text = context.getString(LR.string.profile_set_up_account)
                 lblUserEmail.visibility = View.GONE
             }
+
             null -> lblUserEmail.text = null
+        }
+    }
+
+    private fun updateGravatarProfile(signInState: SignInState?) {
+        gravatarProfile?.apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                val profileService = ProfileService()
+                var profiles by remember { mutableStateOf(UserProfiles(emptyList()), neverEqualPolicy()) }
+                var error by remember { mutableStateOf("") }
+
+                when (signInState) {
+                    is SignInState.SignedIn -> {
+                        profileService.fetchWithListener(
+                            Email(signInState.email),
+                            object : GravatarListener<UserProfiles, ErrorType> {
+                                override fun onSuccess(response: UserProfiles) {
+                                    profiles = response
+                                }
+
+                                override fun onError(errorType: ErrorType) {
+                                    error = errorType.name
+                                }
+                            },
+                        )
+                    }
+                    else -> {}
+                }
+
+                if (signInState is SignInState.SignedIn) {
+                    if (profiles.entry.isNotEmpty()) {
+                        Image(
+                            painter = painterResource(id = R.drawable.gravatar_profile_background), contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .fillMaxSize()
+                        )
+                        CompositionLocalProvider(LocalGravatarTheme provides object : GravatarTheme {
+                            override val colorScheme: ColorScheme
+                                @Composable
+                                get() = MaterialTheme.colorScheme.copy(
+                                    outline = Color.LightGray,
+                                    onBackground = Color.White)
+
+                            override val typography: Typography
+                                @Composable
+                                get() = MaterialTheme.typography.copy(
+                                    // Couldn't find the right setting for this under colorScheme
+                                    headlineSmall = MaterialTheme.typography.headlineSmall.copy(color = Color.White),
+                                )
+                        }) {
+                            LargeProfileSummary(
+                                profile = profiles.entry.first(),
+                                modifier = Modifier
+                                    .padding(16.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 

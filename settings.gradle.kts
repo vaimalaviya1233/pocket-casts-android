@@ -23,11 +23,13 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { setUrl("https://jitpack.io") }
         maven {
             setUrl("https://a8c-libs.s3.amazonaws.com/android")
             content {
                 includeGroup("com.automattic")
                 includeGroup("com.automattic.tracks")
+                includeGroup("com.gravatar")
             }
         }
     }

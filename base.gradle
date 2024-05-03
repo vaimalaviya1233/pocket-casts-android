@@ -206,6 +206,8 @@ dependencies {
     implementation libs.glide
     implementation libs.glide.okhttp
     implementation libs.guava
+    implementation libs.gravatar
+    implementation libs.gravatar.ui
     implementation libs.material
     implementation libs.material.dialogs
     implementation libs.material.progressbar

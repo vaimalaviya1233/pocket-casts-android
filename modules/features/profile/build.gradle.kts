@@ -38,4 +38,8 @@ dependencies {
     implementation(project(":modules:services:ui"))
     implementation(project(":modules:services:utils"))
     implementation(project(":modules:services:views"))
+
+
+    implementation("com.google.android.material:material:1.11.0")
+    implementation("androidx.compose.material3:material3")
 }

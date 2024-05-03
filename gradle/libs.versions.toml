@@ -276,6 +276,8 @@ viewpager = "androidx.viewpager2:viewpager2:1.0.0"
 wear-input = "androidx.wear:wear-input:1.2.0-alpha02"
 wear-remote-interactions = "androidx.wear:wear-remote-interactions:1.0.0"
 wear-tooling-preview = "androidx.wear:wear-tooling-preview:1.0.0"
+gravatar = "com.gravatar:gravatar:trunk-d43fab05636329659b124b49f525b739200f415c"
+gravatar-ui = "com.gravatar:gravatar-ui:trunk-d43fab05636329659b124b49f525b739200f415c"
 
 [bundles]
 aboutlibraries = [

@@ -203,7 +203,6 @@ class ProfileFragment : BaseFragment() {
 
         with(binding.userView) {
             lblUserEmail.setOnClickListener { onProfileAccountButtonClicked() }
-            imgProfilePicture.setOnClickListener { onProfileAccountButtonClicked() }
             btnAccount?.setOnClickListener { onProfileAccountButtonClicked() }
         }
 
