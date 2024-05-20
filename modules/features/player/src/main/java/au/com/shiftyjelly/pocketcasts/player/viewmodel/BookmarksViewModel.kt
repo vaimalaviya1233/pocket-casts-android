@@ -179,7 +179,7 @@ class BookmarksViewModel
                 UiState.Empty(sourceView)
             } else {
                 val searchText = (_uiState.value as? UiState.Loaded)?.searchText ?: ""
-                val filteredBookmarks = if (searchResults.searchTerm.isNotEmpty()) {
+                var filteredBookmarks = if (searchResults.searchTerm.isNotEmpty()) {
                     bookmarks.filter { bookmark -> searchResults.searchUuids?.contains(bookmark.uuid) == true }
                 } else {
                     bookmarks
@@ -188,7 +188,9 @@ class BookmarksViewModel
                     ?: episodeManager.findEpisodesByUuids(filteredBookmarks.map { it.episodeUuid }.distinct())
                 val bookmarkIdAndEpisodeMap = filteredBookmarks.associate { bookmark ->
                     bookmark.uuid to episodes.firstOrNull { it.uuid == bookmark.episodeUuid }
-                }
+                }.filterValues { episode -> episode != null }
+                filteredBookmarks = filteredBookmarks.filter { bookmark -> bookmarkIdAndEpisodeMap.containsKey(bookmark.uuid) }
+
                 UiState.Loaded(
                     bookmarks = filteredBookmarks,
                     bookmarkIdAndEpisodeMap = bookmarkIdAndEpisodeMap,
