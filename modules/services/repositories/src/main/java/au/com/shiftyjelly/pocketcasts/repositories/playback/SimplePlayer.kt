@@ -17,8 +17,6 @@ import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
-import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.hls.HlsMediaSource
@@ -27,9 +25,15 @@ import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.mp3.Mp3Extractor
 import androidx.media3.ui.WearUnsuitableOutputPlaybackSuppressionResolverListener
+import androidx.work.Data
+import androidx.work.OneTimeWorkRequest
+import androidx.work.WorkManager
 import au.com.shiftyjelly.pocketcasts.models.entity.Podcast
 import au.com.shiftyjelly.pocketcasts.models.to.PlaybackEffects
 import au.com.shiftyjelly.pocketcasts.preferences.Settings
+import au.com.shiftyjelly.pocketcasts.repositories.playback.CacheWorker.Companion.EPISODE_UUID_KEY
+import au.com.shiftyjelly.pocketcasts.repositories.playback.CacheWorker.Companion.URL_KEY
+import au.com.shiftyjelly.pocketcasts.repositories.playback.ExoPlayerCacheUtil.CACHE_SIZE_IN_MB
 import au.com.shiftyjelly.pocketcasts.repositories.user.StatsManager
 import au.com.shiftyjelly.pocketcasts.utils.Util
 import au.com.shiftyjelly.pocketcasts.utils.log.LogBuffer
@@ -251,9 +255,7 @@ class SimplePlayer(
 
         addVideoListener(player)
 
-        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
-            .setUserAgent("Pocket Casts")
-            .setAllowCrossProtocolRedirects(true)
+        val httpDataSourceFactory = ExoPlayerCacheUtil.getDataSourceFactory()
         val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
         val extractorsFactory = DefaultExtractorsFactory()
             .setConstantBitrateSeekingEnabled(true)
@@ -286,21 +288,48 @@ class SimplePlayer(
             }
         } ?: return
 
-        val sourceFactory = ExoPlayerCacheUtil.getSimpleCache(
+        val simpleCache = ExoPlayerCacheUtil.getSimpleCache(
             context = context,
-            cacheSizeInMB = settings.getExoPlayerCacheSizeInMB(),
+            cacheSizeInMB = CACHE_SIZE_IN_MB, // settings.getExoPlayerCacheSizeInMB(),
             crashLogging = crashLogging,
-        )?.let { cache ->
+        )
+
+        val sourceFactory = simpleCache?.let { cache ->
             if (location is EpisodeLocation.Stream) {
-                CacheDataSource.Factory()
-                    .setCache(cache)
-                    .setUpstreamDataSourceFactory(httpDataSourceFactory)
+                val factory = if (ExoPlayerCacheUtil.isCached(episodeUuid)) {
+                    // cache data source factory
+                    ExoPlayerCacheUtil.getCacheDataSourceFactory(
+                        httpDataSourceFactory,
+                        cache,
+                    )
+                } else {
+                    // Start caching the episode
+                    val inputData = Data.Builder()
+                        .putString(URL_KEY, url)
+                        .putString(EPISODE_UUID_KEY, episodeUuid)
+                        .build()
+
+                    WorkManager.getInstance(context).cancelAllWorkByTag(location.uri!!)
+                    val cacheWorkRequest = OneTimeWorkRequest.Builder(CacheWorker::class.java)
+                        .addTag(location.uri)
+                        .setInputData(inputData).build()
+
+                    WorkManager.getInstance(context).enqueue(cacheWorkRequest)
+
+                    // network data source factory
+                    dataSourceFactory
+                }
+                factory
             } else {
                 dataSourceFactory
             }
         } ?: dataSourceFactory
 
-        val mediaItem = MediaItem.fromUri(uri)
+        val mediaItem = MediaItem.Builder()
+            .setUri(uri)
+            .setCustomCacheKey(episodeUuid)
+            .build()
+
         val source = if (isHLS) {
             HlsMediaSource.Factory(sourceFactory)
         } else {

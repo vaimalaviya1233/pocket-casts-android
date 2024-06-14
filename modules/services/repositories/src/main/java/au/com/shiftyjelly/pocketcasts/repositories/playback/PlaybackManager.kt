@@ -1699,11 +1699,15 @@ open class PlaybackManager @Inject constructor(
         return if (!sameEpisode) {
             playbackOnDevice
         } else {
-            episode.isDownloaded &&
-                playbackOnDevice &&
-                episode.downloadedFilePath != null &&
-                player != null &&
-                episode.downloadedFilePath != player?.filePath
+            playbackOnDevice &&
+                (
+                    ExoPlayerCacheUtil.isCached(episode.uuid) ||
+                        (
+                            episode.downloadedFilePath != null &&
+                                player != null &&
+                                episode.downloadedFilePath != player?.filePath
+                            )
+                    )
         }
 
         // if the player has a different media file path then it is changing
@@ -1792,7 +1796,8 @@ open class PlaybackManager @Inject constructor(
         }
 
         episodeSubscription?.dispose()
-        if (!episode.isDownloaded) {
+        var isCached = ExoPlayerCacheUtil.isCached(episode.uuid)
+        if (!(isCached || episode.isDownloaded)) {
             if (!Util.isCarUiMode(application) &&
                 !Util.isWearOs(application) && // The watch handles these warnings before this is called
                 settings.warnOnMeteredNetwork.value &&
@@ -1835,9 +1840,9 @@ open class PlaybackManager @Inject constructor(
                         .takeUntil { it.isDownloaded }
                         .subscribeBy(
                             onNext = {
-                                if (player?.isStreaming == true && it.isDownloaded && player?.isRemote == false) {
+                                isCached = ExoPlayerCacheUtil.isCached(episode.uuid)
+                                if (player?.isStreaming == true && (it.isDownloaded || isCached) && player?.isRemote == false) {
                                     LogBuffer.i(LogBuffer.TAG_PLAYBACK, "Episode was streaming but was now downloaded, switching to downloaded file")
-
                                     launch(Dispatchers.Default) {
                                         player?.let { player ->
                                             val currentTimeSecs = player.getCurrentPositionMs().toDouble() / 1000.0
@@ -1892,7 +1897,7 @@ open class PlaybackManager @Inject constructor(
                     episodeManager.updatePlayedUpTo(episode, playerPositionSeconds, forceUpdate = true)
                     posUpdatedOnPlayerReset = true
                 }
-
+                Timber.d("Cache: 4 resetPlayer")
                 resetPlayer()
                 playerPositionMs
             } else {
