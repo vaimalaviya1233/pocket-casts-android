@@ -25,7 +25,9 @@ import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.mp3.Mp3Extractor
 import androidx.media3.ui.WearUnsuitableOutputPlaybackSuppressionResolverListener
+import androidx.work.Constraints
 import androidx.work.Data
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 import au.com.shiftyjelly.pocketcasts.models.entity.Podcast
@@ -311,8 +313,14 @@ class SimplePlayer(
                         .build()
 
                     WorkManager.getInstance(context).cancelAllWorkByTag(CACHE_WORKER_TAG)
+
+                    val constraints = Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.UNMETERED)
+                        .build()
+
                     val cacheWorkRequest = OneTimeWorkRequest.Builder(CacheWorker::class.java)
                         .addTag(CACHE_WORKER_TAG)
+                        .setConstraints(constraints)
                         .setInputData(inputData).build()
 
                     WorkManager.getInstance(context).enqueue(cacheWorkRequest)
