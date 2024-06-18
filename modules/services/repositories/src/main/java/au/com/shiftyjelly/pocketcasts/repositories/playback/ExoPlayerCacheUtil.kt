@@ -81,7 +81,8 @@ object ExoPlayerCacheUtil {
         return requireNotNull(cacheDataSourceFactory)
     }
 
-    fun isCached(episodeUuid: String?): Boolean {
-        return episodeUuid?.let { simpleCache?.getKeys()?.contains(episodeUuid) } ?: false
+    fun isPreCached(episodeUuid: String?): Boolean {
+        return FeatureFlag.isEnabled(Feature.PRE_CACHE_EPISODE) &&
+                episodeUuid?.let { simpleCache?.getKeys()?.contains(episodeUuid) } ?: false
     }
 }

@@ -38,6 +38,8 @@ import au.com.shiftyjelly.pocketcasts.repositories.playback.CacheWorker.Companio
 import au.com.shiftyjelly.pocketcasts.repositories.playback.ExoPlayerCacheUtil.CACHE_SIZE_IN_MB
 import au.com.shiftyjelly.pocketcasts.repositories.user.StatsManager
 import au.com.shiftyjelly.pocketcasts.utils.Util
+import au.com.shiftyjelly.pocketcasts.utils.featureflag.Feature
+import au.com.shiftyjelly.pocketcasts.utils.featureflag.FeatureFlag
 import au.com.shiftyjelly.pocketcasts.utils.log.LogBuffer
 import com.automattic.android.tracks.crashlogging.CrashLogging
 import java.io.File
@@ -299,31 +301,33 @@ class SimplePlayer(
 
         val sourceFactory = simpleCache?.let { cache ->
             if (location is EpisodeLocation.Stream) {
-                val factory = if (ExoPlayerCacheUtil.isCached(episodeUuid)) {
+                val factory = if (!FeatureFlag.isEnabled(Feature.PRE_CACHE_EPISODE) || ExoPlayerCacheUtil.isPreCached(episodeUuid)) {
                     // cache data source factory
                     ExoPlayerCacheUtil.getCacheDataSourceFactory(
                         httpDataSourceFactory,
                         cache,
                     )
                 } else {
-                    // Start caching the episode
-                    val inputData = Data.Builder()
-                        .putString(URL_KEY, url)
-                        .putString(EPISODE_UUID_KEY, episodeUuid)
-                        .build()
+                    if (FeatureFlag.isEnabled(Feature.PRE_CACHE_EPISODE)) {
+                        // Start caching the episode
+                        val inputData = Data.Builder()
+                            .putString(URL_KEY, url)
+                            .putString(EPISODE_UUID_KEY, episodeUuid)
+                            .build()
 
-                    WorkManager.getInstance(context).cancelAllWorkByTag(CACHE_WORKER_TAG)
+                        WorkManager.getInstance(context).cancelAllWorkByTag(CACHE_WORKER_TAG)
 
-                    val constraints = Constraints.Builder()
-                        .setRequiredNetworkType(NetworkType.UNMETERED)
-                        .build()
+                        val constraints = Constraints.Builder()
+                            .setRequiredNetworkType(NetworkType.UNMETERED)
+                            .build()
 
-                    val cacheWorkRequest = OneTimeWorkRequest.Builder(CacheWorker::class.java)
-                        .addTag(CACHE_WORKER_TAG)
-                        .setConstraints(constraints)
-                        .setInputData(inputData).build()
+                        val cacheWorkRequest = OneTimeWorkRequest.Builder(CacheWorker::class.java)
+                            .addTag(CACHE_WORKER_TAG)
+                            .setConstraints(constraints)
+                            .setInputData(inputData).build()
 
-                    WorkManager.getInstance(context).enqueue(cacheWorkRequest)
+                        WorkManager.getInstance(context).enqueue(cacheWorkRequest)
+                    }
 
                     // network data source factory
                     dataSourceFactory

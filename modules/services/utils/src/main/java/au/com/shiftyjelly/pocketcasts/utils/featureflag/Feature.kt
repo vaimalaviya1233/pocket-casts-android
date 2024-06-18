@@ -115,6 +115,14 @@ enum class Feature(
         hasFirebaseRemoteFlag = false,
         hasDevToggle = true,
     ),
+    PRE_CACHE_EPISODE(
+        key = "pre_cache_episode",
+        title = "Pre cache episode",
+        defaultValue = BuildConfig.DEBUG,
+        tier = FeatureTier.Free,
+        hasFirebaseRemoteFlag = false,
+        hasDevToggle = true,
+    ),
     ;
 
     companion object {

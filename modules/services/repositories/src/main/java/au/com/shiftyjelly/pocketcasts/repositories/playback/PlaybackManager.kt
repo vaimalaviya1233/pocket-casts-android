@@ -1701,7 +1701,7 @@ open class PlaybackManager @Inject constructor(
         } else {
             playbackOnDevice &&
                 (
-                    ExoPlayerCacheUtil.isCached(episode.uuid) ||
+                    ExoPlayerCacheUtil.isPreCached(episode.uuid) ||
                         (
                             episode.downloadedFilePath != null &&
                                 player != null &&
@@ -1796,7 +1796,7 @@ open class PlaybackManager @Inject constructor(
         }
 
         episodeSubscription?.dispose()
-        var isCached = ExoPlayerCacheUtil.isCached(episode.uuid)
+        var isCached = ExoPlayerCacheUtil.isPreCached(episode.uuid)
         if (!(isCached || episode.isDownloaded)) {
             if (!Util.isCarUiMode(application) &&
                 !Util.isWearOs(application) && // The watch handles these warnings before this is called
@@ -1840,7 +1840,7 @@ open class PlaybackManager @Inject constructor(
                         .takeUntil { it.isDownloaded }
                         .subscribeBy(
                             onNext = {
-                                isCached = ExoPlayerCacheUtil.isCached(episode.uuid)
+                                isCached = ExoPlayerCacheUtil.isPreCached(episode.uuid)
                                 if (player?.isStreaming == true && (it.isDownloaded || isCached) && player?.isRemote == false) {
                                     LogBuffer.i(LogBuffer.TAG_PLAYBACK, "Episode was streaming but was now downloaded, switching to downloaded file")
                                     launch(Dispatchers.Default) {
@@ -2384,7 +2384,7 @@ open class PlaybackManager @Inject constructor(
 
     private fun setupBufferUpdateTimer(episode: BaseEpisode) {
         val player = player
-        if (player == null || !player.isStreaming || player.isRemote || episode.isDownloading || ExoPlayerCacheUtil.isCached(episode.uuid)) {
+        if (player == null || !player.isStreaming || player.isRemote || episode.isDownloading || ExoPlayerCacheUtil.isPreCached(episode.uuid)) {
             return
         }
         lastBufferedUpTo = -1
