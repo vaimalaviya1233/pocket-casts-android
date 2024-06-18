@@ -2384,7 +2384,7 @@ open class PlaybackManager @Inject constructor(
 
     private fun setupBufferUpdateTimer(episode: BaseEpisode) {
         val player = player
-        if (player == null || !player.isStreaming || player.isRemote || episode.isDownloading) {
+        if (player == null || !player.isStreaming || player.isRemote || episode.isDownloading || ExoPlayerCacheUtil.isCached(episode.uuid)) {
             return
         }
         lastBufferedUpTo = -1
