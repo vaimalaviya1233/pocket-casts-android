@@ -44,6 +44,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 
+private const val CACHE_WORKER_TAG = "cache_worker_tag"
 class SimplePlayer(
     val settings: Settings,
     val statsManager: StatsManager,
@@ -309,9 +310,9 @@ class SimplePlayer(
                         .putString(EPISODE_UUID_KEY, episodeUuid)
                         .build()
 
-                    WorkManager.getInstance(context).cancelAllWorkByTag(location.uri!!)
+                    WorkManager.getInstance(context).cancelAllWorkByTag(CACHE_WORKER_TAG)
                     val cacheWorkRequest = OneTimeWorkRequest.Builder(CacheWorker::class.java)
-                        .addTag(location.uri)
+                        .addTag(CACHE_WORKER_TAG)
                         .setInputData(inputData).build()
 
                     WorkManager.getInstance(context).enqueue(cacheWorkRequest)
