@@ -1447,4 +1447,21 @@ class SettingsImpl @Inject constructor(
         editor.putBoolean(Settings.AUTOMOTIVE_CONNECTED_TO_MEDIA_SESSION, isLoaded)
         editor.apply()
     }
+
+    override fun setCachedEpisodeLengths(map: Map<String, Long>) {
+        val editor = sharedPreferences.edit()
+        val set = map.map { it.key + ":" + it.value }.toSet()
+        editor.putStringSet(Settings.PREFERENCE_CACHED_EPISODE_LENGTHS, set)
+        editor.apply()
+    }
+
+    override fun getCachedEpisodeLengths(): Map<String, Long> {
+        val lengths = sharedPreferences.getStringSet(Settings.PREFERENCE_CACHED_EPISODE_LENGTHS, emptySet())?.toList() ?: emptyList()
+        val hashMap = HashMap<String, Long>()
+        hashMap.putAll(lengths.map {
+            val split = it.split(":")
+            split[0] to split[1].toLong()
+        })
+        return hashMap.toMap()
+    }
 }

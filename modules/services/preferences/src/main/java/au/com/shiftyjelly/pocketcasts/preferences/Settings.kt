@@ -96,6 +96,8 @@ interface Settings {
         const val PREFERENCE_BOOKMARKS_SORT_TYPE_FOR_PODCAST = "bookmarksSortTypeForPodcast"
         const val PREFERENCE_BOOKMARKS_SORT_TYPE_FOR_PROFILE = "bookmarksSortTypeForProfile"
 
+        const val PREFERENCE_CACHED_EPISODE_LENGTHS = "cached_episode_lengths"
+
         val SUPPORTED_LANGUAGE_CODES = arrayOf("us", "se", "jp", "gb", "fr", "es", "de", "ca", "au", "it", "ru", "br", "no", "be", "cn", "dk", "sw", "ch", "ie", "pl", "kr", "nl")
 
         // legacy settings
@@ -547,4 +549,7 @@ interface Settings {
 
     fun automotiveConnectedToMediaSession(): Boolean
     fun setAutomotiveConnectedToMediaSession(isLoaded: Boolean)
+
+    fun setCachedEpisodeLengths(map: Map<String, Long>)
+    fun getCachedEpisodeLengths(): Map<String, Long>
 }

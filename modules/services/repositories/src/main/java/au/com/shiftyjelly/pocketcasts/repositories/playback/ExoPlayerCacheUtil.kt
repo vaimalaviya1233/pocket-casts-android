@@ -9,6 +9,7 @@ import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
+import au.com.shiftyjelly.pocketcasts.preferences.Settings
 import au.com.shiftyjelly.pocketcasts.repositories.BuildConfig
 import au.com.shiftyjelly.pocketcasts.utils.featureflag.Feature
 import au.com.shiftyjelly.pocketcasts.utils.featureflag.FeatureFlag
@@ -26,6 +27,8 @@ object ExoPlayerCacheUtil {
     private var simpleCache: SimpleCache? = null
     private var dataSourceFactory: DataSource.Factory? = null
     private var cacheDataSourceFactory: CacheDataSource.Factory? = null
+
+    private val cachedKeyWithLengths = mutableMapOf<String, Long>()
 
     @Suppress("UNUSED_PARAMETER")
     @OptIn(UnstableApi::class)
@@ -84,5 +87,29 @@ object ExoPlayerCacheUtil {
     fun isPreCached(episodeUuid: String?): Boolean {
         return FeatureFlag.isEnabled(Feature.PRE_CACHE_EPISODE) &&
                 episodeUuid?.let { simpleCache?.getKeys()?.contains(episodeUuid) } ?: false
+                episodeUuid?.let {
+                    val length = cachedKeyWithLengths[it]
+                    if (length == null) {
+                        false
+                    } else {
+                        simpleCache?.isCached(it, 0, length)
+                    }
+                } ?: false
+    }
+
+    fun initCachedKeysWithLengths(settings: Settings) {
+        cachedKeyWithLengths.clear()
+        cachedKeyWithLengths.putAll(settings.getCachedEpisodeLengths())
+    }
+
+    fun updateCachedKeysWithLengths(
+        episodeUuid: String,
+        length: Long,
+        keys: List<String>,
+        settings: Settings,
+    ) {
+        cachedKeyWithLengths[episodeUuid] = length
+        cachedKeyWithLengths.keys.removeIf { !keys.contains(it) }
+        settings.setCachedEpisodeLengths(cachedKeyWithLengths)
     }
 }

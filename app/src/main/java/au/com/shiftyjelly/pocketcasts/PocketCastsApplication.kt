@@ -20,6 +20,7 @@ import au.com.shiftyjelly.pocketcasts.repositories.file.FileStorage
 import au.com.shiftyjelly.pocketcasts.repositories.file.StorageOptions
 import au.com.shiftyjelly.pocketcasts.repositories.jobs.VersionMigrationsJob
 import au.com.shiftyjelly.pocketcasts.repositories.notification.NotificationHelper
+import au.com.shiftyjelly.pocketcasts.repositories.playback.ExoPlayerCacheUtil
 import au.com.shiftyjelly.pocketcasts.repositories.playback.PlaybackManager
 import au.com.shiftyjelly.pocketcasts.repositories.playback.SleepTimerRestartWhenShakingDevice
 import au.com.shiftyjelly.pocketcasts.repositories.podcast.EpisodeManager
@@ -35,6 +36,8 @@ import au.com.shiftyjelly.pocketcasts.shared.AppLifecycleObserver
 import au.com.shiftyjelly.pocketcasts.shared.DownloadStatisticsReporter
 import au.com.shiftyjelly.pocketcasts.ui.helper.AppIcon
 import au.com.shiftyjelly.pocketcasts.utils.TimberDebugTree
+import au.com.shiftyjelly.pocketcasts.utils.featureflag.Feature
+import au.com.shiftyjelly.pocketcasts.utils.featureflag.FeatureFlag
 import au.com.shiftyjelly.pocketcasts.utils.log.LogBuffer
 import au.com.shiftyjelly.pocketcasts.utils.log.LogBufferUncaughtExceptionHandler
 import au.com.shiftyjelly.pocketcasts.utils.log.RxJavaUncaughtExceptionHandling
@@ -274,6 +277,10 @@ class PocketCastsApplication : Application(), Configuration.Provider {
             .onEach { widgetManager.updateWidgetEpisodeArtwork(playbackManager) }
             .launchIn(applicationScope)
         keepPlayerWidgetsUpdated()
+
+        if (FeatureFlag.isEnabled(Feature.PRE_CACHE_EPISODE)) {
+            ExoPlayerCacheUtil.initCachedKeysWithLengths(settings)
+        }
 
         Timber.i("Launched ${BuildConfig.APPLICATION_ID}")
     }
