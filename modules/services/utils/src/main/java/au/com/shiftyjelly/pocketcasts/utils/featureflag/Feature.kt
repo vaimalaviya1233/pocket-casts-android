@@ -131,6 +131,14 @@ enum class Feature(
         hasFirebaseRemoteFlag = false,
         hasDevToggle = true,
     ),
+    GRAVATAR_NATIVE_PICKER(
+        key = "gravatar_native_picker",
+        title = "Use the Gravatar Native Picker",
+        defaultValue = BuildConfig.DEBUG,
+        tier = FeatureTier.Free,
+        hasFirebaseRemoteFlag = false,
+        hasDevToggle = true,
+    ),
     ;
 
     companion object {

@@ -25,6 +25,7 @@ dependencies {
     implementation(project(":modules:features:player"))
     implementation(project(":modules:features:podcasts"))
     implementation(project(":modules:features:settings"))
+    implementation(libs.compose.material3)
 
     // services
     implementation(project(":modules:services:analytics"))
@@ -39,4 +40,7 @@ dependencies {
     implementation(project(":modules:services:ui"))
     implementation(project(":modules:services:utils"))
     implementation(project(":modules:services:views"))
+
+    implementation("com.gravatar:gravatar-ui:hamorillo_162-avatar-upload-wordpress-oauth-7f40e612cd02e9e0d922d8a10096bcade7d09823")
+    implementation("com.gravatar:gravatar:hamorillo_162-avatar-upload-wordpress-oauth-7f40e612cd02e9e0d922d8a10096bcade7d09823")
 }

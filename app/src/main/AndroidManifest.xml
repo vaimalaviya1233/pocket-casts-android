@@ -267,6 +267,19 @@
                 <data android:scheme="https" android:host="pocket-casts-main-development.mystagingwebsite.com" android:path="/get" />
             </intent-filter>
 
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+
+                <category
+                    android:name="android.intent.category.DEFAULT"/>
+                <category
+                    android:name="android.intent.category.BROWSABLE"/>
+
+                <data
+                    android:host="authorization-callback"
+                    android:scheme="wp-oauth-test"/>
+            </intent-filter>
+
             <meta-data
                     android:name="android.app.shortcuts"
                     android:resource="@xml/shortcuts"/>
