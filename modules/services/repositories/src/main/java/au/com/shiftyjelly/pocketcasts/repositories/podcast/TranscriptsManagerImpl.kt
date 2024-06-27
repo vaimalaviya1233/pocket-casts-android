@@ -17,6 +17,9 @@ class TranscriptsManagerImpl @Inject constructor(
         }
     }
 
+    override fun observerTranscriptForEpisode(episodeUuid: String) =
+        transcriptDao.observerTranscriptForEpisode(episodeUuid)
+
     private fun findBestTranscript(availableTranscripts: List<Transcript>): Transcript? {
         for (format in supportedFormats) {
             val transcript = availableTranscripts.firstOrNull { it.type == format.mimeType }
