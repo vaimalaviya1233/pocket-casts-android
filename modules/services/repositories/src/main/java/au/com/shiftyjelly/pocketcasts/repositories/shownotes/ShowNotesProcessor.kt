@@ -31,7 +31,7 @@ class ShowNotesProcessor @Inject constructor(
         updateChapters(episodeUuid, showNotes)
         updateChapterFromLink(episodeUuid, showNotes)
         if (FeatureFlag.isEnabled(Feature.TRANSCRIPTS)) {
-            updateTranscripts(showNotes)
+            updateTranscripts(episodeUuid, showNotes)
         }
     }
 
@@ -55,15 +55,12 @@ class ShowNotesProcessor @Inject constructor(
         }
     }
 
-    private fun updateTranscripts(showNotes: ShowNotesResponse) = scope.launch {
-        val podcastIndexTranscripts = showNotes.podcast?.episodes
-            ?.mapNotNull { episodeShowNotes ->
-                val episodeTranscript = episodeShowNotes.transcripts?.map { it.toTranscript() }
-                episodeTranscript?.let { episodeShowNotes.uuid to it }
-            }
-        podcastIndexTranscripts?.forEach { (episodeUuid, transcripts) ->
-            transcriptsManager.updateTranscripts(episodeUuid, transcripts)
-        }
+    private fun updateTranscripts(episodeUuid: String, showNotes: ShowNotesResponse) = scope.launch {
+        val transcripts = showNotes.podcast?.episodes
+            ?.firstOrNull { it.uuid == episodeUuid }
+            ?.transcripts
+            ?.mapNotNull { it.takeIf { it.url != null && it.type != null }?.toTranscript(episodeUuid) }
+        transcripts?.let { transcriptsManager.updateTranscripts(it) }
     }
 
     private fun updateChapterFromLink(episodeUuid: String, showNotes: ShowNotesResponse) = scope.launch {
@@ -97,9 +94,10 @@ class ShowNotesProcessor @Inject constructor(
         isEmbedded = false,
     )
 
-    private fun ShowNotesTranscript.toTranscript() = Transcript(
-        url = url,
-        type = type,
+    private fun ShowNotesTranscript.toTranscript(episodeUuid: String) = Transcript(
+        episodeUuid = episodeUuid,
+        url = requireNotNull(url),
+        type = requireNotNull(type),
         language = language,
     )
 }

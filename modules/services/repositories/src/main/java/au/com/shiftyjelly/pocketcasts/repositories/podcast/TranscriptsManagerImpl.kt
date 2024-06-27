@@ -1,15 +1,20 @@
 package au.com.shiftyjelly.pocketcasts.repositories.podcast
 
+import au.com.shiftyjelly.pocketcasts.models.db.dao.TranscriptDao
 import au.com.shiftyjelly.pocketcasts.models.to.Transcript
 import javax.inject.Inject
 
-class TranscriptsManagerImpl @Inject constructor() : TranscriptsManager {
+class TranscriptsManagerImpl @Inject constructor(
+    private val transcriptDao: TranscriptDao,
+) : TranscriptsManager {
     private val supportedFormats = listOf(TranscriptFormat.SRT, TranscriptFormat.VTT)
 
     override suspend fun updateTranscripts(
-        episodeUuid: String,
         transcripts: List<Transcript>,
     ) {
+        findBestTranscript(transcripts)?.let { bestTranscript ->
+            transcriptDao.insert(bestTranscript)
+        }
     }
 
     private fun findBestTranscript(availableTranscripts: List<Transcript>): Transcript? {

@@ -44,7 +44,7 @@ data class RawChaptersResponse(
 
 @JsonClass(generateAdapter = true)
 data class ShowNotesTranscript(
-    @Json(name = "url") val url: String,
+    @Json(name = "url") val url: String? = null,
     @Json(name = "type") val type: String? = null,
     @Json(name = "language") val language: String? = null,
 )
