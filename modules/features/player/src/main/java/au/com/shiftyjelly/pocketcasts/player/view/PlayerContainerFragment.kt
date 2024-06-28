@@ -223,8 +223,11 @@ class PlayerContainerFragment : BaseFragment(), HasBackstack {
         if (FeatureFlag.isEnabled(Feature.TRANSCRIPTS)) {
             viewLifecycleOwner.lifecycleScope.launch {
                 viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                    transcriptViewModel.uiState.collect {
-                        adapter.updateTranscript(addTranscript = it.transcript != null)
+                    transcriptViewModel.uiState.collect { uiState ->
+                        when (uiState) {
+                            is TranscriptViewModel.UiState.Empty -> adapter.updateTranscript(false)
+                            else -> adapter.updateTranscript(true)
+                        }
                     }
                 }
             }
