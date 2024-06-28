@@ -1,12 +1,17 @@
 package au.com.shiftyjelly.pocketcasts.repositories.shownotes
 
+import au.com.shiftyjelly.pocketcasts.models.to.Transcript
 import au.com.shiftyjelly.pocketcasts.repositories.di.ApplicationScope
 import au.com.shiftyjelly.pocketcasts.repositories.podcast.ChapterManager
 import au.com.shiftyjelly.pocketcasts.repositories.podcast.EpisodeManager
 import au.com.shiftyjelly.pocketcasts.repositories.podcast.ImageUrlUpdate
+import au.com.shiftyjelly.pocketcasts.repositories.podcast.TranscriptsManager
 import au.com.shiftyjelly.pocketcasts.servers.podcast.PodcastCacheServer
 import au.com.shiftyjelly.pocketcasts.servers.podcast.ShowNotesChapter
 import au.com.shiftyjelly.pocketcasts.servers.podcast.ShowNotesResponse
+import au.com.shiftyjelly.pocketcasts.servers.podcast.ShowNotesTranscript
+import au.com.shiftyjelly.pocketcasts.utils.featureflag.Feature
+import au.com.shiftyjelly.pocketcasts.utils.featureflag.FeatureFlag
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
@@ -18,12 +23,16 @@ class ShowNotesProcessor @Inject constructor(
     @ApplicationScope private val scope: CoroutineScope,
     private val episodeManager: EpisodeManager,
     private val chapterManager: ChapterManager,
+    private val transcriptsManager: TranscriptsManager,
     private val service: PodcastCacheServer,
 ) {
-    fun process(episodeUuidForChapterUrl: String, showNotes: ShowNotesResponse) {
+    fun process(episodeUuid: String, showNotes: ShowNotesResponse) {
         updateImageUrls(showNotes)
-        updateChapters(episodeUuidForChapterUrl, showNotes)
-        updateChapterFromLink(episodeUuidForChapterUrl, showNotes)
+        updateChapters(episodeUuid, showNotes)
+        updateChapterFromLink(episodeUuid, showNotes)
+        if (FeatureFlag.isEnabled(Feature.TRANSCRIPTS)) {
+            updateTranscripts(showNotes)
+        }
     }
 
     private fun updateImageUrls(showNotes: ShowNotesResponse) = scope.launch {
@@ -43,6 +52,17 @@ class ShowNotesProcessor @Inject constructor(
             }
         chapters?.forEach { (episodeUuid, chapters) ->
             chapterManager.updateChapters(episodeUuid, chapters)
+        }
+    }
+
+    private fun updateTranscripts(showNotes: ShowNotesResponse) = scope.launch {
+        val podcastIndexTranscripts = showNotes.podcast?.episodes
+            ?.mapNotNull { episodeShowNotes ->
+                val episodeTranscript = episodeShowNotes.transcripts?.map { it.toTranscript() }
+                episodeTranscript?.let { episodeShowNotes.uuid to it }
+            }
+        podcastIndexTranscripts?.forEach { (episodeUuid, transcripts) ->
+            transcriptsManager.updateTranscripts(episodeUuid, transcripts)
         }
     }
 
@@ -75,5 +95,11 @@ class ShowNotesProcessor @Inject constructor(
         imageUrl = image,
         url = url,
         isEmbedded = false,
+    )
+
+    private fun ShowNotesTranscript.toTranscript() = Transcript(
+        url = url,
+        type = type,
+        language = language,
     )
 }
